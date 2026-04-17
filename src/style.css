@@ -15,7 +15,7 @@
   --text:     #f8fafc;
   --muted:    #a4b3cc;
   --warn:     #f0b33c;
-  --danger:   #ec4f3c;
+  --danger:   #f06050;
   --ok:       #31d48f;
   --line:     #2a3a67;
   --card:     #12203fdd;
@@ -49,6 +49,23 @@ body {
 
 a { color: var(--paper); text-decoration-color: var(--warn); }
 a:hover, a:focus-visible { color: var(--warn); }
+
+/* Skip to main content — screen reader & keyboard */
+.skip-link {
+  position: absolute;
+  top: -999px;
+  left: 0.5rem;
+  background: var(--warn);
+  color: #000;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0 0 0.4rem 0.4rem;
+  font: 700 0.85rem var(--font-mono);
+  z-index: 1000;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 0;
+}
 
 /* ------------------------------------------------------------------ */
 /* App shell                                                           */
@@ -150,6 +167,28 @@ a:focus-visible {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+html[data-theme='light'] .contract-block {
+  background: rgba(18,29,57,0.06);
+}
+html[data-theme='light'] .state-cell,
+html[data-theme='light'] .toy-grid span {
+  background: rgba(18,29,57,0.06);
+}
+html[data-theme='light'] .scenario-tabs button {
+  background: rgba(18,29,57,0.04);
+}
+html[data-theme='light'] button {
+  background: rgba(18,29,57,0.06);
+}
+html[data-theme='light'] .model-table .th {
+  background: rgba(18,29,57,0.08);
+}
+html[data-theme='light'] .page-bg {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(160,91,0,0.08), transparent 38%),
+    radial-gradient(circle at 90% 8%, rgba(185,35,23,0.05), transparent 44%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-soft) 100%);
 }
 
 h3 {
@@ -306,6 +345,9 @@ button:disabled {
   font: 0.74rem/1.5 var(--font-mono);
   background: rgba(6,12,28,0.55);
 }
+html[data-theme='light'] .attack-log {
+  background: rgba(18,29,57,0.04);
+}
 .attack-log p { margin: 0 0 0.35rem; }
 
 .attack-log .phase-header {
@@ -387,6 +429,21 @@ footer {
   color: var(--muted);
   font-size: 0.82rem;
   text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive: narrow — model table stacks                             */
+/* ------------------------------------------------------------------ */
+@media (max-width: 479px) {
+  .model-table {
+    grid-template-columns: 1fr;
+  }
+  .model-table .th:nth-child(2) {
+    border-top: 2px solid var(--warn);
+  }
+  .gap-bar .mark {
+    font-size: 0.62rem;
+  }
 }
 
 /* ------------------------------------------------------------------ */

@@ -18,6 +18,7 @@ if (!app) throw new Error('App root not found');
 /* HTML shell                                                          */
 /* ------------------------------------------------------------------ */
 app.innerHTML = `
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
   <header class="topbar">
@@ -26,7 +27,7 @@ app.innerHTML = `
             aria-label="Toggle dark and light theme">\u{1F319}</button>
   </header>
 
-  <main class="panel-grid">
+  <main class="panel-grid" id="main-content">
 
     <!-- ============ PANEL A ============ -->
     <section class="panel" id="panel-a">
