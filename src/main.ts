@@ -65,23 +65,33 @@ STATUS:  Secure under these conditions \u2713</pre>
     <section class="panel" id="panel-b">
       <h2 class="panel-title">THE THREAT MODEL MAP</h2>
 
-      <div class="model-table" role="table"
-           aria-label="Standard vs extended threat model comparison">
-        <div class="th" role="columnheader">STANDARD MODEL</div>
-        <div class="th" role="columnheader">EXTENDED MODEL (this attack)</div>
-
-        <div role="cell">Encrypt with fresh nonces</div>
-        <div role="cell">Encrypt with fresh nonces \u2713</div>
-
-        <div role="cell">Observe ciphertexts</div>
-        <div role="cell">Observe ciphertexts \u2713</div>
-
-        <div role="cell">Try to forge (limited)</div>
-        <div role="cell">Submit <strong>UNLIMITED</strong> forgeries to decryption oracle until one tag validates \u2717</div>
-
-        <div role="cell" class="ok-text">HiAE security: 2<sup>256</sup> \u2713</div>
-        <div role="cell" class="danger-text">HiAE security: 2<sup>209</sup> \u2717</div>
-      </div>
+      <table class="model-table"
+             aria-label="Standard vs extended threat model comparison">
+        <thead>
+          <tr>
+            <th scope="col">STANDARD MODEL</th>
+            <th scope="col">EXTENDED MODEL (this attack)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Encrypt with fresh nonces</td>
+            <td>Encrypt with fresh nonces \u2713</td>
+          </tr>
+          <tr>
+            <td>Observe ciphertexts</td>
+            <td>Observe ciphertexts \u2713</td>
+          </tr>
+          <tr>
+            <td>Try to forge (limited)</td>
+            <td>Submit <strong>UNLIMITED</strong> forgeries to decryption oracle until one tag validates \u2717</td>
+          </tr>
+          <tr>
+            <td class="ok-text">HiAE security: 2<sup>256</sup> \u2713</td>
+            <td class="danger-text">HiAE security: 2<sup>209</sup> \u2717</td>
+          </tr>
+        </tbody>
+      </table>
 
       <div class="gap-wrap">
         <div class="gap-bar" aria-hidden="true">
@@ -124,7 +134,7 @@ STATUS:  Secure under these conditions \u2713</pre>
            Whether it matters depends on your deployment \u2014 see Panel B.</p>
         <p>Full paper:
           <a href="https://eprint.iacr.org/2025/1203.pdf"
-             target="_blank" rel="noreferrer">ePrint 2025/1203</a></p>
+             target="_blank" rel="noreferrer">ePrint 2025/1203<span class="sr-only"> (opens in new tab)</span></a></p>
       </aside>
     </section>
 
@@ -140,7 +150,7 @@ STATUS:  Secure under these conditions \u2713</pre>
           Attack: 2<sup>209</sup> time, 2<sup>130</sup> data.
           Extended decryption oracle model.</span>
           <a href="https://eprint.iacr.org/2025/1203.pdf"
-             target="_blank" rel="noreferrer">View Paper \u2197</a>
+             target="_blank" rel="noreferrer">View Paper \u2197<span class="sr-only"> (opens in new tab)</span></a>
         </div>
         <div class="tl-entry">
           <b>Jun 2025</b>
@@ -155,7 +165,7 @@ STATUS:  Secure under these conditions \u2713</pre>
           \u201CThe attack operates outside Section 4.5 of our paper.\u201D<br>
           HiAE security claims: intact under standard model.</span>
           <a href="https://eprint.iacr.org/2025/1235.pdf"
-             target="_blank" rel="noreferrer">View Response \u2197</a>
+             target="_blank" rel="noreferrer">View Response \u2197<span class="sr-only"> (opens in new tab)</span></a>
         </div>
       </div>
 

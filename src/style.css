@@ -67,11 +67,25 @@ a:hover, a:focus-visible { color: var(--warn); }
   top: 0;
 }
 
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ------------------------------------------------------------------ */
 /* App shell                                                           */
 /* ------------------------------------------------------------------ */
 #app {
   position: relative;
+  min-height: 100vh;
   min-height: 100svh;
   padding: 0.75rem;
   max-width: 1500px;
@@ -181,7 +195,7 @@ html[data-theme='light'] .scenario-tabs button {
 html[data-theme='light'] button {
   background: rgba(18,29,57,0.06);
 }
-html[data-theme='light'] .model-table .th {
+html[data-theme='light'] .model-table th {
   background: rgba(18,29,57,0.08);
 }
 html[data-theme='light'] .page-bg {
@@ -242,18 +256,22 @@ h3 {
 /* Panel B — threat model table                                        */
 /* ------------------------------------------------------------------ */
 .model-table {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  border-collapse: collapse;
   border: 1px solid var(--line);
   border-radius: 0.5rem;
   overflow: hidden;
   font-size: 0.78rem;
+  table-layout: fixed;
+  word-wrap: break-word;
 }
-.model-table > div {
+.model-table th,
+.model-table td {
   padding: 0.4rem 0.5rem;
   border-bottom: 1px solid var(--line);
+  text-align: left;
 }
-.model-table .th {
+.model-table th {
   font: 700 0.74rem var(--font-mono);
   color: var(--paper);
   background: rgba(16,29,61,0.6);
@@ -294,7 +312,8 @@ h3 {
   background: rgba(10,19,39,0.5);
   color: var(--text);
   border-radius: 0.4rem;
-  padding: 0.3rem 0.55rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.75rem;
   cursor: pointer;
   font-size: 0.78rem;
 }
@@ -326,9 +345,18 @@ button {
   border-radius: 0.4rem;
   background: rgba(7,17,38,0.5);
   color: var(--text);
-  padding: 0.4rem 0.65rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.75rem;
   font: 0.8rem var(--font-mono);
   cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+button:hover:not(:disabled) {
+  border-color: var(--warn);
+  background: rgba(240,179,60,0.1);
+}
+button:active:not(:disabled) {
+  background: rgba(240,179,60,0.2);
 }
 button:disabled {
   opacity: 0.4;
@@ -435,14 +463,14 @@ footer {
 /* Responsive: narrow — model table stacks                             */
 /* ------------------------------------------------------------------ */
 @media (max-width: 479px) {
-  .model-table {
-    grid-template-columns: 1fr;
-  }
-  .model-table .th:nth-child(2) {
+  .model-table th:nth-child(2) {
     border-top: 2px solid var(--warn);
   }
   .gap-bar .mark {
     font-size: 0.62rem;
+  }
+  .attack-log {
+    max-height: 16rem;
   }
 }
 
