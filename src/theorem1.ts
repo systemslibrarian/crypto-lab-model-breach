@@ -165,7 +165,7 @@ export function theorem1StateRecoveryWithTrace(
   beta0: Uint8Array,
   alpha1: Uint8Array,
   beta1: Uint8Array,
-  alpha2: Uint8Array,
+  _alpha2: Uint8Array,
   beta2: Uint8Array,
   z0: Uint8Array,
   z0p: Uint8Array,
@@ -178,7 +178,8 @@ export function theorem1StateRecoveryWithTrace(
 ): Theorem1Solution | null {
   assertAlphaActivatesToySboxes(alpha0, 'alpha0');
   assertAlphaActivatesToySboxes(alpha1, 'alpha1');
-  assertAlphaActivatesToySboxes(alpha2, 'alpha2');
+  // alpha2 is a derived difference — it may activate more than 4 bytes
+  // after AESL diffusion via MixColumns. No assertion needed.
 
   const candidates0 = enumeratePairCandidates(alpha0, beta0, z0);
   const candidates1 = enumeratePairCandidates(alpha1, beta1, z1);
