@@ -178,6 +178,7 @@ export function theorem1StateRecoveryWithTrace(
 ): Theorem1Solution | null {
   assertAlphaActivatesToySboxes(alpha0, 'alpha0');
   assertAlphaActivatesToySboxes(alpha1, 'alpha1');
+  assertAlphaActivatesToySboxes(alpha2, 'alpha2');
 
   const candidates0 = enumeratePairCandidates(alpha0, beta0, z0);
   const candidates1 = enumeratePairCandidates(alpha1, beta1, z1);
