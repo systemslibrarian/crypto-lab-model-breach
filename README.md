@@ -22,8 +22,12 @@ responded in ePrint 2025/1235, maintaining their claims are intact under
 the original model. Both positions are correct — which is exactly the point.
 
 Implements real AESL (one AES round, zero round key), a structurally correct
-toy-scale HiAE, and simulates all three attack phases with line-by-line output
-and full-scale complexity annotations. No backends. No simulated math.
+toy-scale HiAE, and walks through all three attack phases with line-by-line
+output and full-scale complexity annotations. No backends. Every primitive and
+the Theorem 1 candidate enumeration are real, executed math — not mocks or
+recordings. The live attack runs at toy 2^8 scale; full-scale key recovery
+(2^209 time, 2^130 data) is annotated, never executed in-browser — the demo
+shows the instance's ground-truth key to confirm the toy pipeline's target.
 
 ## When to Use It
 
@@ -78,7 +82,9 @@ npm run dev
 ## Stack
 
 Vite + TypeScript strict + vanilla CSS. GitHub Pages. No backends.
-No external crypto libraries. WebCrypto API only for all primitives.
+No external crypto libraries — the AES round function (AESL) and the toy HiAE
+are hand-implemented in `src/`; WebCrypto supplies randomness only (key, nonce,
+and probe-tag generation).
 
 ---
 

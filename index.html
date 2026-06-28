@@ -3,12 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <script>
-      const t = localStorage.getItem('cv-theme') || 'dark';
+      /* Honor whichever toggle last wrote: the shared header writes 'theme',
+         this lab's (hidden) in-page toggle writes 'cv-theme'. Read both so the
+         choice persists across reloads regardless of which control was used. */
+      const t = localStorage.getItem('theme') || localStorage.getItem('cv-theme') || 'dark';
       document.documentElement.setAttribute('data-theme', t);
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Browser-based threat model case study using HiAE algebraic attack — security claims are contracts, the threat model is the fine print." />
+    <meta name="theme-color" content="#0b1328" />
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When the Contract Breaks — crypto-lab-model-breach" />
+    <meta property="og:description" content="A live case study: security claims are contracts, the threat model is the fine print. Watch HiAE's 256-bit claim hold under its model and fall to 2^209 outside it." />
+    <meta property="og:url" content="https://systemslibrarian.github.io/crypto-lab-model-breach/" />
+    <meta property="og:image" content="https://systemslibrarian.github.io/crypto-lab-model-breach/favicon.svg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="When the Contract Breaks — crypto-lab-model-breach" />
+    <meta name="twitter:description" content="HiAE's 256-bit claim holds under its model and falls to 2^209 outside it. The threat model is the fine print." />
+
     <title>crypto-lab-model-breach — When the Contract Breaks</title>
   </head>
   <body>
