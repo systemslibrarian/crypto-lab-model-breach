@@ -196,6 +196,13 @@ STATUS:  Secure under these conditions \u2713</pre>
   </main>
 
   <footer>
+    <p class="related-demos">Related demos:
+      <a href="https://systemslibrarian.github.io/crypto-lab-nonce-guard/" target="_blank" rel="noreferrer">crypto-lab-nonce-guard</a>
+      <a href="https://systemslibrarian.github.io/crypto-lab-aes-modes/" target="_blank" rel="noreferrer">crypto-lab-aes-modes</a>
+      <a href="https://systemslibrarian.github.io/crypto-lab-ascon/" target="_blank" rel="noreferrer">crypto-lab-ascon</a>
+      <a href="https://systemslibrarian.github.io/crypto-lab-aegis-gate/" target="_blank" rel="noreferrer">crypto-lab-aegis-gate</a>
+      <a href="https://systemslibrarian.github.io/crypto-lab-protocol-compose/" target="_blank" rel="noreferrer">crypto-lab-protocol-compose</a>
+    </p>
     <p>\u201CWhether therefore ye eat, or drink, or whatsoever ye do,
     do all to the glory of God.\u201D \u2014 1 Corinthians 10:31</p>
   </footer>
