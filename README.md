@@ -1,7 +1,6 @@
-# crypto-lab-model-breach — When the Contract Breaks
+# crypto-lab-model-breach
 
-> "Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God."
-> — 1 Corinthians 10:31
+*When the Contract Breaks.*
 
 ## What It Is
 
@@ -28,16 +27,17 @@ and full-scale complexity annotations. No backends. No simulated math.
 
 ## When to Use It
 
-- You need to teach the difference between a security claim and absolute safety
-- You are evaluating an AEAD for a deployment and need to reason about
-  your actual adversary model, not just the scheme's stated security level
-- You want to understand why "no known attack" always has an asterisk
-- You are building systems that expose decryption as a service and need to
-  understand the implications
+- You need to teach the difference between a security claim and absolute safety.
+- You are evaluating an AEAD for a deployment and need to reason about your actual adversary model, not just the scheme's stated security level.
+- You want to understand why "no known attack" always has an asterisk.
+- You are building systems that expose decryption as a service and need to understand the implications.
+- Do NOT treat this as production code or a definitive verdict on HiAE — it is a teaching demo running toy-scale parameters to illustrate a threat-model argument.
 
 ## Live Demo
 
-https://systemslibrarian.github.io/crypto-lab-model-breach/
+**[systemslibrarian.github.io/crypto-lab-model-breach](https://systemslibrarian.github.io/crypto-lab-model-breach/)**
+
+The demo implements real AESL (one AES round with a zero round key) and a structurally correct toy-scale HiAE, then walks through all three phases of the extended-oracle algebraic attack with line-by-line output and full-scale complexity annotations. You can watch the attack succeed under the stronger decryption-oracle model and see why the same scheme remains secure under its original nonce-respecting claim — making the role of the threat model concrete rather than abstract.
 
 ## What Can Go Wrong
 
@@ -54,26 +54,34 @@ https://systemslibrarian.github.io/crypto-lab-model-breach/
 
 ## Real-World Usage
 
-The same extended-oracle attack framework was applied to AEGIS first, then
-Rocca, now HiAE. The pattern suggests any AES-round-function-based AEAD with
-insufficient key mixing at initialization/finalization may share this
-structural property. If you are designing a new AEAD, your security analysis
-should explicitly address the extended decryption oracle model even if you
-choose to exclude it from your formal claims.
+- The same extended-oracle attack framework was applied to AEGIS first, then Rocca, now HiAE — the pattern suggests any AES-round-function-based AEAD with insufficient key mixing at initialization/finalization may share this structural property.
+- If you are designing a new AEAD, your security analysis should explicitly address the extended decryption oracle model even if you choose to exclude it from your formal claims.
+- HiAE itself is the IETF CFRG draft draft-pham-cfrg-hiae; deployment decisions should account for whether the target environment (e.g. 6G or GPU/NPU interconnect) can expose decryption oracles to adversaries capable of 2^128 queries.
 
-HiAE itself is the IETF CFRG draft draft-pham-cfrg-hiae. Deployment decisions
-should account for whether 6G or GPU/NPU interconnect environments can expose
-decryption oracles to adversaries capable of 2^128 queries.
+## How to Run Locally
+
+```bash
+git clone https://github.com/systemslibrarian/crypto-lab-model-breach
+cd crypto-lab-model-breach
+npm install
+npm run dev
+```
+
+## Related Demos
+
+- [crypto-lab-nonce-guard](https://systemslibrarian.github.io/crypto-lab-nonce-guard/) — how AEAD guarantees collapse outside their nonce assumptions.
+- [crypto-lab-aes-modes](https://systemslibrarian.github.io/crypto-lab-aes-modes/) — AES modes and authenticated encryption fundamentals.
+- [crypto-lab-ascon](https://systemslibrarian.github.io/crypto-lab-ascon/) — a standardized lightweight AEAD for comparison.
+- [crypto-lab-aegis-gate](https://systemslibrarian.github.io/crypto-lab-aegis-gate/) — AEGIS, the AES-round-function AEAD this attack family first targeted.
+- [crypto-lab-protocol-compose](https://systemslibrarian.github.io/crypto-lab-protocol-compose/) — how composition and threat-model choices break real protocols.
 
 ## Stack
 
 Vite + TypeScript strict + vanilla CSS. GitHub Pages. No backends.
 No external crypto libraries. WebCrypto API only for all primitives.
 
-## Build
+---
 
-```bash
-npm install
-npm run build
-npm run dev    # local dev server
-```
+*One of 60+ browser demos in the [Crypto Lab](https://crypto-lab.systemslibrarian.dev/) suite.*
+
+*"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
