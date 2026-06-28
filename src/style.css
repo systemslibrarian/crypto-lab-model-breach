@@ -45,6 +45,17 @@ body {
   color: var(--text);
   background: var(--bg);
   line-height: 1.55;
+  /* Keep iOS from auto-inflating text, and never let a long mono token push
+     the layout wider than the viewport on small screens. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-wrap: break-word;
+}
+
+/* The skip link and in-page anchor jump to #main-content; the shared header is
+   sticky, so offset the landing point to clear it (WCAG 2.4.1 / 2.4.3). */
+#main-content {
+  scroll-margin-top: 4.5rem;
 }
 
 a { color: var(--paper); text-decoration-color: var(--warn); }
@@ -391,8 +402,23 @@ html[data-theme='light'] .attack-log {
 
 .complexity-badge {
   color: var(--warn);
-  font-size: 0.68rem;
-  opacity: 0.85;
+  font-size: 0.72rem;
+}
+
+.attack-log .log-note {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.74rem;
+  border-left: 2px solid var(--line);
+  padding-left: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* The log is a focusable scrollable region (WCAG 2.1.1) — give it a clear
+   focus ring so keyboard users can see they've entered it to scroll. */
+.attack-log:focus-visible {
+  outline: 3px solid var(--warn);
+  outline-offset: 2px;
 }
 
 .disclaimer {
@@ -460,14 +486,53 @@ footer {
 }
 
 /* ------------------------------------------------------------------ */
-/* Responsive: narrow — model table stacks                             */
+/* Reduced motion — honor the OS preference (WCAG 2.3.3)               */
+/* The state-cell pulse is also stopped in JS so the interval does no  */
+/* needless work; this covers transitions and any animation in flight. */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .state-cell.pulse { animation: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive: phones — readability layer (<=600px)                    */
+/* The desktop design is deliberately dense; on phones the same dense  */
+/* monospace blocks are hard to read, so nudge the smallest type up.   */
+/* All values are rem, so they still scale with the user's font size.  */
+/* ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .contract-block { font-size: 0.8rem; }
+  .attack-log     { font-size: 0.8rem; }
+  .complexity-badge { font-size: 0.74rem; }
+  .model-table    { font-size: 0.82rem; }
+  .model-table th { font-size: 0.78rem; }
+  .scenario-card  { font-size: 0.85rem; }
+  .state-cell, .toy-grid span { font-size: 0.78rem; }
+  .tiny, .state-note { font-size: 0.82rem; }
+
+  /* Give the comparison table column headers room to breathe rather than
+     crushing two columns of text edge-to-edge. */
+  .model-table th, .model-table td { padding: 0.45rem 0.55rem; }
+
+  /* Buttons go full-width and stack so they're easy thumb targets. */
+  .actions button { flex: 1 1 100%; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive: narrow — tightest phones                                */
 /* ------------------------------------------------------------------ */
 @media (max-width: 479px) {
   .model-table th:nth-child(2) {
     border-top: 2px solid var(--warn);
   }
   .gap-bar .mark {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
   }
   .attack-log {
     max-height: 16rem;

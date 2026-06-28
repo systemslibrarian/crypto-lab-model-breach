@@ -21,11 +21,13 @@ app.innerHTML = `
   <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
-  <header class="topbar">
+  <!-- A plain div, not <header>: a bare <header> here would be an implicit
+       banner landmark, duplicating the shared site header's role="banner". -->
+  <div class="topbar">
     <h1>When the Contract Breaks</h1>
     <button id="theme-toggle" class="theme-toggle" type="button"
             aria-label="Toggle dark and light theme">\u{1F319}</button>
-  </header>
+  </div>
 
   <main class="panel-grid" id="main-content">
 
@@ -121,11 +123,14 @@ STATUS:  Secure under these conditions \u2713</pre>
         <button id="generate-instance" type="button">Generate Instance</button>
         <button id="run-attack" type="button" disabled>Run Attack</button>
       </div>
-      <p id="instance-meta" class="tiny">Oracles not initialized yet.</p>
+      <p id="instance-meta" class="tiny" role="status" aria-live="polite">Oracles not initialized yet.</p>
 
-      <div id="attack-log" class="attack-log" aria-live="polite"></div>
+      <div id="attack-log" class="attack-log" role="log"
+           tabindex="0" aria-live="polite"
+           aria-label="Attack simulation log — scrollable"></div>
 
-      <aside id="disclaimer" class="disclaimer hidden">
+      <aside id="disclaimer" class="disclaimer hidden"
+             aria-label="Threat model reminder">
         <strong>\u26A0 THREAT MODEL REMINDER</strong>
         <p>This attack required a decryption oracle that accepts unlimited forgery
            attempts. Toy scale: 2<sup>8</sup> queries.
@@ -305,14 +310,22 @@ for (let i = 0; i < 16; i++) {
   fullState.appendChild(cell);
 }
 
-let tick = 0;
-setInterval(() => {
-  const cells = fullState.querySelectorAll<HTMLDivElement>('.state-cell');
-  cells.forEach(c => c.classList.remove('pulse'));
-  cells[(tick * 5) % cells.length]?.classList.add('pulse');
-  cells[15]?.classList.add('pulse');
-  tick++;
-}, 2000);
+// The state diagram gently pulses to suggest the running update path. Skip it
+// entirely when the user prefers reduced motion (WCAG 2.3.3) so we neither
+// animate nor spin a timer for nothing.
+const prefersReducedMotion =
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+if (!prefersReducedMotion) {
+  let tick = 0;
+  setInterval(() => {
+    const cells = fullState.querySelectorAll<HTMLDivElement>('.state-cell');
+    cells.forEach(c => c.classList.remove('pulse'));
+    cells[(tick * 5) % cells.length]?.classList.add('pulse');
+    cells[15]?.classList.add('pulse');
+    tick++;
+  }, 2000);
+}
 
 /* ------------------------------------------------------------------ */
 /* Panel C \u2014 Attack helpers                                            */
@@ -347,7 +360,8 @@ function renderProgress(prog: AttackProgress): void {
       else if (prog.step.startsWith('probe'))
         appendBadge('  Querying decryption oracle...', '2^8 attempts', '2^128');
       else if (prog.step.startsWith('accepted'))
-        appendLog('  ' + prog.step + ' \u2713', 'ok-text');
+        appendLog('  Forgery accepted \u2014 nonce-repeated pair obtained. ' +
+                  '(Simulated at toy scale; the full attack needs ~2^128 oracle queries.) \u2713', 'ok-text');
       break;
 
     case 'theorem1':
@@ -424,6 +438,8 @@ runBtnEl.addEventListener('click', async () => {
 
   runBtnEl.disabled = true;
   generateBtnEl.disabled = true;
+  runBtnEl.textContent = 'Running…';
+  attackLogEl.setAttribute('aria-busy', 'true');
   attackLogEl.innerHTML = '';
   disclaimerEl.classList.add('hidden');
 
@@ -458,6 +474,12 @@ runBtnEl.addEventListener('click', async () => {
     const match = expHex === recHex;
     appendLog('  Match: ' + (match ? '\u2713 EXACT' : '\u2717 MISMATCH'), match ? 'ok-text' : 'danger-text');
     appendLog('  Total time: ' + elapsed + 'ms');
+    appendLog(
+      '  Note: full-scale key recovery (2^209 time, 2^130 data) is not executed ' +
+      'in-browser. The value shown is the instance\u2019s ground-truth key, displayed ' +
+      'to confirm the toy pipeline reaches a unique solution.',
+      'log-note',
+    );
 
     const gdSteps = result.steps.filter((s: AttackStep) => s.phase === 'guess-determine');
     if (gdSteps.length > 0) {
@@ -475,5 +497,7 @@ runBtnEl.addEventListener('click', async () => {
   } finally {
     runBtnEl.disabled = false;
     generateBtnEl.disabled = false;
+    runBtnEl.textContent = 'Run Attack';
+    attackLogEl.setAttribute('aria-busy', 'false');
   }
 });

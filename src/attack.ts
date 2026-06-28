@@ -1,4 +1,4 @@
-import { aesl, aeslInv, gmul, mixColumnsInv, SBOX, SBOX_INV } from './aesl';
+import { aesl, aeslInv, gmul, SBOX, SBOX_INV } from './aesl';
 import { equalBytes, xorBytes } from './bytes';
 import { theorem1StateRecoveryWithTrace } from './theorem1';
 
@@ -171,7 +171,7 @@ export async function runModelBreachAttack(
   /* ============================================================== */
   const pt = new TextEncoder().encode('Toy HiAE (4-block reduced)');
   const phase1Start = nowMs();
-  const { ct, tag } = await encOracle(pt);
+  const { ct } = await encOracle(pt);
 
   onProgress({ phase: 'state-recovery', step: 'inject-delta', pct: 5, candidateCount: 256, complexityNote: 'Toy: 2^8 | Full: 2^128' });
 
@@ -182,23 +182,27 @@ export async function runModelBreachAttack(
 
   onProgress({ phase: 'state-recovery', step: 'probe-oracle', pct: 10, candidateCount: 256, complexityNote: 'Toy: 2^8 | Full: 2^128' });
 
-  // Query decryption oracle with random tags until one validates
-  let acceptedAttempt = -1;
-  for (let attempt = 1; attempt <= 256; attempt++) {
-    const probeTag = (attempt === 47) ? tag : randomTag();
-    const res = await decOracle(forgedCt, probeTag);
+  // Submit forgeries to the decryption oracle. Each random tag validates with
+  // probability ~2^-128, so at toy scale none is expected to pass within a
+  // feasible sample; we probe a bounded batch and then *assert* the resulting
+  // nonce-repeated pair for the walkthrough. The full attack continues issuing
+  // queries (~2^128) until a tag genuinely validates.
+  const PROBES = 256;
+  let validated = false;
+  for (let attempt = 1; attempt <= PROBES; attempt++) {
+    const res = await decOracle(forgedCt, randomTag());
     if (res.valid) {
-      acceptedAttempt = attempt;
+      validated = true;
       break;
     }
   }
-  if (acceptedAttempt < 0) acceptedAttempt = 47;
 
-  onProgress({ phase: 'state-recovery', step: 'accepted: Tag accepted at attempt ' + acceptedAttempt + '. Nonce-repeated pair obtained.', pct: 20, candidateCount: 1, complexityNote: 'Toy: 2^8 | Full: 2^128' });
+  onProgress({ phase: 'state-recovery', step: 'accepted', pct: 20, candidateCount: 1, complexityNote: 'Toy: 2^8 | Full: 2^128' });
 
   steps.push({
     phase: 'state-recovery',
-    description: 'Decryption oracle queried; accepted at attempt ' + acceptedAttempt,
+    description: 'Decryption oracle probed ' + PROBES + '×; ' +
+      (validated ? 'forgery validated' : 'no toy-scale forgery validated — pair asserted for the walkthrough'),
     candidatesBefore: 256, candidatesAfter: 1,
     toyComplexity: 'Toy: 2^8 queries', fullComplexity: 'Full: 2^128 queries',
     elapsedMs: elapsed(phase1Start),
@@ -287,11 +291,9 @@ export async function runModelBreachAttack(
   if (!evaluateKeyEquation(K0candidate, U0, U1, U2, U3, U9, U17))
     throw new Error('Toy MITM key equation check failed');
 
-  const T4 = mixColumnsInv(U3);
-  const RHS = xorBytes(U1, U17);
-  for (let t = 0; t < 16; t++) {
-    evaluateByteEquation(t, K0candidate, U0, U2, U9, T4, RHS);
-  }
+  // (The per-byte decomposition `evaluateByteEquation` — paper Section 4.2 — is
+  // kept as documented API; the guess-and-determine schedule below is what the
+  // walkthrough actually drives, so we no longer run a result-discarding loop.)
 
   onProgress({ phase: 'mitm', step: 'derived', pct: 60, candidateCount: 160, complexityNote: 'Toy: 2^8 | Full: 2^209' });
 

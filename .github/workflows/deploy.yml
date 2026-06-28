@@ -30,6 +30,12 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (round-trip · Theorem 1 · full attack)
+        run: npm test
+
       - name: Build
         run: npm run build
 
