@@ -7,6 +7,7 @@
 /* Design tokens                                                       */
 /* ------------------------------------------------------------------ */
 :root {
+  color-scheme: dark;
   --font-body: 'Public Sans', 'Helvetica Neue', Helvetica, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
   --bg:       #0b1328;
@@ -22,6 +23,7 @@
 }
 
 html[data-theme='light'] {
+  color-scheme: light;
   --bg:       #f6f4ec;
   --bg-soft:  #ebe7db;
   --paper:    #121d39;
@@ -39,11 +41,18 @@ html[data-theme='light'] {
 /* ------------------------------------------------------------------ */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Give <html> its own background-color so the painted canvas matches the theme.
+   Without it, WebKit promotes the body background and reports the canvas as
+   transparent, which makes axe-core assume a white page and flag dark text. */
+html {
+  background-color: var(--bg);
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg);
   line-height: 1.55;
   /* Keep iOS from auto-inflating text, and never let a long mono token push
      the layout wider than the viewport on small screens. */
@@ -66,7 +75,7 @@ a:hover, a:focus-visible { color: var(--warn); }
   position: absolute;
   top: -999px;
   left: 0.5rem;
-  background: var(--warn);
+  background-color: var(--warn);
   color: #000;
   padding: 0.4rem 0.8rem;
   border-radius: 0 0 0.4rem 0.4rem;
@@ -134,7 +143,7 @@ a:hover, a:focus-visible { color: var(--warn); }
 .theme-toggle {
   border: 1px solid var(--line);
   color: var(--text);
-  background: var(--card);
+  background-color: var(--card);
   border-radius: 999px;
   width: 2.6rem; height: 2.6rem;
   font-size: 1.15rem;
@@ -165,7 +174,7 @@ a:focus-visible {
 
 .panel {
   border: 1px solid var(--line);
-  background: var(--card);
+  background-color: var(--card);
   border-radius: 0.8rem;
   padding: 0.85rem;
   backdrop-filter: blur(4px);
@@ -183,7 +192,7 @@ a:focus-visible {
 /* Panel A — contract block                                            */
 /* ------------------------------------------------------------------ */
 .contract-block {
-  background: rgba(7,12,26,0.5);
+  background-color: rgba(7,12,26,0.5);
   border: 1px dashed var(--line);
   color: var(--paper);
   font: 0.76rem/1.55 var(--font-mono);
@@ -194,20 +203,20 @@ a:focus-visible {
   word-break: break-word;
 }
 html[data-theme='light'] .contract-block {
-  background: rgba(18,29,57,0.06);
+  background-color: rgba(18,29,57,0.06);
 }
 html[data-theme='light'] .state-cell,
 html[data-theme='light'] .toy-grid span {
-  background: rgba(18,29,57,0.06);
+  background-color: rgba(18,29,57,0.06);
 }
 html[data-theme='light'] .scenario-tabs button {
-  background: rgba(18,29,57,0.04);
+  background-color: rgba(18,29,57,0.04);
 }
 html[data-theme='light'] button {
-  background: rgba(18,29,57,0.06);
+  background-color: rgba(18,29,57,0.06);
 }
 html[data-theme='light'] .model-table th {
-  background: rgba(18,29,57,0.08);
+  background-color: rgba(18,29,57,0.08);
 }
 html[data-theme='light'] .page-bg {
   background:
@@ -235,12 +244,19 @@ h3 {
   padding: 0.3rem;
   text-align: center;
   font: 0.72rem var(--font-mono);
-  background: rgba(8,15,31,0.55);
+  background-color: rgba(8,15,31,0.55);
 }
 
 .state-cell.key-carry, .toy-grid .key-carry {
   border-color: var(--danger);
   color: #ffd8d1;
+}
+/* The light-pink key-carry ink reads fine on the dark cell but drops well
+   below 4.5:1 on the light theme's near-white cell fill — use a deep red ink
+   there so the danger cue stays legible. */
+html[data-theme='light'] .state-cell.key-carry,
+html[data-theme='light'] .toy-grid .key-carry {
+  color: #a01207;
 }
 
 .state-cell.pulse {
@@ -285,7 +301,7 @@ h3 {
 .model-table th {
   font: 700 0.74rem var(--font-mono);
   color: var(--paper);
-  background: rgba(16,29,61,0.6);
+  background-color: rgba(16,29,61,0.6);
 }
 
 .ok-text  { color: var(--ok); }
@@ -320,7 +336,7 @@ h3 {
 }
 .scenario-tabs button {
   border: 1px solid var(--line);
-  background: rgba(10,19,39,0.5);
+  background-color: rgba(10,19,39,0.5);
   color: var(--text);
   border-radius: 0.4rem;
   padding: 0.5rem 0.75rem;
@@ -330,7 +346,7 @@ h3 {
 }
 .scenario-tabs button.active {
   border-color: var(--warn);
-  background: rgba(240,179,60,0.12);
+  background-color: rgba(240,179,60,0.12);
 }
 
 .scenario-card {
@@ -354,7 +370,7 @@ h3 {
 button {
   border: 1px solid var(--line);
   border-radius: 0.4rem;
-  background: rgba(7,17,38,0.5);
+  background-color: rgba(7,17,38,0.5);
   color: var(--text);
   padding: 0.5rem 0.75rem;
   min-height: 2.75rem;
@@ -364,10 +380,10 @@ button {
 }
 button:hover:not(:disabled) {
   border-color: var(--warn);
-  background: rgba(240,179,60,0.1);
+  background-color: rgba(240,179,60,0.1);
 }
 button:active:not(:disabled) {
-  background: rgba(240,179,60,0.2);
+  background-color: rgba(240,179,60,0.2);
 }
 button:disabled {
   opacity: 0.4;
@@ -382,10 +398,10 @@ button:disabled {
   border-radius: 0.45rem;
   padding: 0.55rem;
   font: 0.74rem/1.5 var(--font-mono);
-  background: rgba(6,12,28,0.55);
+  background-color: rgba(6,12,28,0.55);
 }
 html[data-theme='light'] .attack-log {
-  background: rgba(18,29,57,0.04);
+  background-color: rgba(18,29,57,0.04);
 }
 .attack-log p { margin: 0 0 0.35rem; }
 
@@ -424,7 +440,7 @@ html[data-theme='light'] .attack-log {
 .disclaimer {
   margin-top: 0.6rem;
   border: 1px solid var(--warn);
-  background: rgba(240,179,60,0.08);
+  background-color: rgba(240,179,60,0.08);
   border-radius: 0.45rem;
   padding: 0.6rem;
   font-size: 0.78rem;
