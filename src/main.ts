@@ -1,11 +1,13 @@
 import './style.css';
-import { runModelBreachAttack, type AttackProgress, type AttackStep } from './attack';
+import { runModelBreachAttack, type AttackProgress } from './attack';
 import { toHex } from './bytes';
 import { decryptOracle, encryptToyHiAE } from './hiae';
+import { deriveToyKey, TOY_AD, TOY_NONCE, TOY_SEED_BITS, TOY_SEED_SPACE } from './toykey';
 
 type ScenarioId = 'a' | 'b' | 'c';
 
 interface DemoInstance {
+  seed: number;
   key: Uint8Array;
   nonce: Uint8Array;
   ad: Uint8Array;
@@ -131,12 +133,19 @@ STATUS:  Secure under these conditions \u2713</pre>
 
       <aside id="disclaimer" class="disclaimer hidden"
              aria-label="Threat model reminder">
-        <strong>\u26A0 THREAT MODEL REMINDER</strong>
-        <p>This attack required a decryption oracle that accepts unlimited forgery
-           attempts. Toy scale: 2<sup>8</sup> queries.
-           Full HiAE: 2<sup>128</sup> decryption queries.</p>
-        <p>This is outside HiAE's stated security model.
-           Whether it matters depends on your deployment \u2014 see Panel B.</p>
+        <strong>\u26A0 WHAT JUST RAN \u2014 AND WHAT DID NOT</strong>
+        <p>The recovered key above is <strong>genuinely computed</strong>: the
+           attack observed the encryption oracle\u2019s keystream, then searched the
+           <em>disclosed reduced toy keyspace</em> (2<sup>${TOY_SEED_BITS}</sup>
+           seeds) for the one key that reproduces it, and confirmed it by getting
+           the <strong>decryption oracle to accept a forgery</strong> signed with
+           that key. No ground-truth key was read.</p>
+        <p>The reduced keyspace is the toy. Recovering a full random 256-bit HiAE
+           key is the 2<sup>209</sup>-time / 2<sup>130</sup>-data result of ePrint
+           2025/1203 \u2014 that is annotated, never executed in-browser.</p>
+        <p>The forgery step needs a decryption oracle that accepts adversarial
+           ciphertexts \u2014 outside HiAE\u2019s stated model.
+           Whether that matters depends on your deployment \u2014 see Panel B.</p>
         <p>Full paper:
           <a href="https://eprint.iacr.org/2025/1203.pdf"
              target="_blank" rel="noreferrer">ePrint 2025/1203<span class="sr-only"> (opens in new tab)</span></a></p>
@@ -354,56 +363,22 @@ function appendBadge(line: string, toy: string, full: string): void {
 
 function renderProgress(prog: AttackProgress): void {
   switch (prog.phase) {
-    case 'state-recovery':
-      if (prog.step.startsWith('inject'))
-        appendLog('  Injecting difference \u0394 into ciphertext (\u0394 activates all S-boxes)...');
-      else if (prog.step.startsWith('probe'))
-        appendBadge('  Querying decryption oracle...', '2^8 attempts', '2^128');
-      else if (prog.step.startsWith('accepted'))
-        appendLog('  Forgery accepted \u2014 nonce-repeated pair obtained. ' +
-                  '(Simulated at toy scale; the full attack needs ~2^128 oracle queries.) \u2713', 'ok-text');
+    case 'observe':
+      appendBadge('  Encryption oracle queried on a zero block; keystream AESL(S0\u2295S2) captured (ct\u2295pt). \u2713',
+                  '1 query', '2^130 data');
       break;
 
-    case 'theorem1':
-      if (prog.step.startsWith('header'))
-        appendLog('\u25B6 Phase 1b: Theorem 1 \u2014 Candidate Enumeration (Lemma 1)', 'phase-header');
-      else if (prog.step.startsWith('enum0'))
-        appendBadge('  After (\u03B10,\u03B20): ' + prog.candidateCount + ' candidate pairs (x0,x0\') enumerated', '\u22642^8', '\u22642^32');
-      else if (prog.step.startsWith('enum1'))
-        appendBadge('  After (\u03B11,\u03B21): ' + prog.candidateCount + ' candidate combos', '\u22642^16', '\u22642^64');
-      else if (prog.step.startsWith('verify'))
-        appendLog('  Verification: A(x2)\u2295A(x2\') = \u03B22 \u2014 unique solution survived. \u2713', 'ok-text');
-      else if (prog.step.startsWith('state-blocks'))
-        appendLog('  State blocks recovered. \u2713', 'ok-text');
+    case 'guess-determine':
+      if (prog.step.startsWith('scan'))
+        appendLog('  Searching disclosed toy keyspace \u2014 ' + prog.candidateCount + ' seeds still to test...');
+      else if (prog.step.startsWith('unique'))
+        appendLog('  Unique seed found: its derived key reproduces the observed keystream exactly. \u2713', 'ok-text');
       break;
 
-    case 'mitm':
-      if (prog.step.startsWith('header'))
-        appendLog('\u25B6 Phase 2: Key Equation Derivation', 'phase-header');
-      else if (prog.step.startsWith('guess-k1'))
-        appendBadge('  Guessing K1...', '2^8 candidates', '2^128');
-      else if (prog.step.startsWith('forward'))
-        appendLog('  Propagating K0 forward: round \u221232 \u2192 round \u221211...');
-      else if (prog.step.startsWith('backward'))
-        appendLog('  Propagating K0 backward: round 0 \u2192 round \u221211...');
-      else if (prog.step.startsWith('derived'))
-        appendLog('  Key equation derived: A(K0\u2295U0)\u2295U1 = A\u207B\u00B9(A(K0\u2295U2)\u2295U3) \u2295 A\u207B\u00B9(K0\u2295U9) \u2295 U17 \u2713', 'ok-text');
+    case 'forge':
+      appendLog('  Decryption oracle ACCEPTED a forgery signed with the recovered key ' +
+                '(and rejected a random-tag forgery). \u2713', 'ok-text');
       break;
-
-    case 'byte-decompose':
-      if (prog.step.startsWith('header'))
-        appendLog('\u25B6 Phase 3: Byte-Level Decomposition (Table 1)', 'phase-header');
-      else
-        appendLog('  Equation factors into 16 independent byte equations...');
-      break;
-
-    case 'guess-determine': {
-      const m = prog.step.match(/^step-(\d+):(.*)/);
-      if (m) {
-        appendLog('  Step ' + m[1] + ': ' + m[2].trim() + ' \u2192 ' + prog.candidateCount + ' candidates remain \u2713');
-      }
-      break;
-    }
 
     case 'done':
       break;
@@ -414,16 +389,20 @@ function renderProgress(prog: AttackProgress): void {
 /* Generate Instance                                                   */
 /* ------------------------------------------------------------------ */
 generateBtnEl.addEventListener('click', () => {
-  const key = new Uint8Array(32);
-  const nonce = new Uint8Array(16);
-  crypto.getRandomValues(key);
-  crypto.getRandomValues(nonce);
+  // Draw a secret seed from the disclosed reduced toy keyspace, derive the key
+  // from it. The attack must REDISCOVER this seed from oracle output \u2014 it is
+  // never handed the key or the seed.
+  const seedBytes = new Uint8Array(2);
+  crypto.getRandomValues(seedBytes);
+  const seed = ((seedBytes[0] | (seedBytes[1] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0;
+  const key = deriveToyKey(seed);
 
-  instance = { key, nonce, ad: new TextEncoder().encode('Toy HiAE (4-block reduced) demo AD') };
+  instance = { seed, key, nonce: new Uint8Array(TOY_NONCE), ad: new Uint8Array(TOY_AD) };
 
   instanceMetaEl.textContent =
-    'Toy HiAE (4-block reduced) instance generated. key[0..7]=' +
-    toHex(key.subarray(0, 8)) + '\u2026 Oracles ready. Both encryption and decryption available.';
+    'Toy instance generated. Secret seed drawn from the disclosed 2^' + TOY_SEED_BITS +
+    ' keyspace; key derived by the public toy KDF. Encryption + decryption oracles ready. ' +
+    '(The attack does not get the seed or key.)';
   runBtnEl.disabled = false;
   attackLogEl.innerHTML = '';
   disclaimerEl.classList.add('hidden');
@@ -447,7 +426,6 @@ runBtnEl.addEventListener('click', async () => {
     const out = encryptToyHiAE(cur.key, cur.nonce, pt, cur.ad);
     return { ct: out.ciphertext, tag: out.tag };
   };
-  (encOracle as { __toyKey?: Uint8Array }).__toyKey = cur.key;
 
   const decOracleFn = async (ct: Uint8Array, tag: Uint8Array) => {
     const out = decryptOracle(cur.key, cur.nonce, ct, cur.ad, tag);
@@ -457,11 +435,23 @@ runBtnEl.addEventListener('click', async () => {
   try {
     const start = performance.now();
 
-    appendLog('\u25B6 Phase 1: State Recovery \u2014 Decryption Oracle Queries', 'phase-header');
-
-    const result = await runModelBreachAttack(encOracle, decOracleFn, (p: AttackProgress) => {
-      renderProgress(p);
-    });
+    appendLog('\u25B6 Phase 1: Observe \u2014 capture keystream from the encryption oracle', 'phase-header');
+    const result = await runModelBreachAttack(
+      encOracle,
+      decOracleFn,
+      (p: AttackProgress) => {
+        if (p.phase === 'guess-determine' && p.step === 'scan-0')
+          appendLog('\u25B6 Phase 2: Guess-and-determine over the disclosed toy keyspace', 'phase-header');
+        if (p.phase === 'forge' && p.step === 'accepted')
+          appendLog('\u25B6 Phase 3: Forge \u2014 confirm the recovered key against the decryption oracle', 'phase-header');
+        renderProgress(p);
+      },
+      {
+        nonce: cur.nonce,
+        ad: cur.ad,
+        encryptLocal: (k, n, pt, ad) => encryptToyHiAE(k, n, pt, ad),
+      },
+    );
 
     const elapsed = Math.round(performance.now() - start);
 
@@ -469,26 +459,19 @@ runBtnEl.addEventListener('click', async () => {
     appendLog('\u25B6 KEY RECOVERED', 'phase-header result-header');
     const expHex = toHex(cur.key);
     const recHex = toHex(result.recoveredKey);
-    appendLog('  Expected:  ' + expHex.slice(0, 16) + '\u2026 (32 bytes)');
-    appendLog('  Recovered: ' + recHex.slice(0, 16) + '\u2026 (32 bytes)');
     const match = expHex === recHex;
-    appendLog('  Match: ' + (match ? '\u2713 EXACT' : '\u2717 MISMATCH'), match ? 'ok-text' : 'danger-text');
+    appendLog('  Recovered seed: 0x' + result.recoveredSeed.toString(16).padStart(4, '0') +
+              ' (rediscovered from oracle output, not read from the instance)');
+    appendLog('  Recovered key:  ' + recHex.slice(0, 16) + '\u2026 (32 bytes)');
+    appendLog('  Verification vs instance ground truth: ' + (match ? '\u2713 EXACT MATCH' : '\u2717 MISMATCH'),
+              match ? 'ok-text' : 'danger-text');
     appendLog('  Total time: ' + elapsed + 'ms');
     appendLog(
-      '  Note: full-scale key recovery (2^209 time, 2^130 data) is not executed ' +
-      'in-browser. The value shown is the instance\u2019s ground-truth key, displayed ' +
-      'to confirm the toy pipeline reaches a unique solution.',
+      '  Note: this recovers the toy key by searching the disclosed 2^' + TOY_SEED_BITS +
+      ' keyspace against real oracle output. Full-scale recovery of a random 256-bit HiAE key ' +
+      '(2^209 time, 2^130 data, ePrint 2025/1203) is annotated, never executed in-browser.',
       'log-note',
     );
-
-    const gdSteps = result.steps.filter((s: AttackStep) => s.phase === 'guess-determine');
-    if (gdSteps.length > 0) {
-      appendLog('');
-      appendLog('  Guess-and-determine summary:');
-      gdSteps.forEach((s: AttackStep, i: number) => {
-        appendLog('    Step ' + (i + 1) + ': ' + s.candidatesBefore + ' \u2192 ' + s.candidatesAfter + ' candidates  [' + s.toyComplexity + ' | ' + s.fullComplexity + ']');
-      });
-    }
 
     disclaimerEl.classList.remove('hidden');
   } catch (err) {

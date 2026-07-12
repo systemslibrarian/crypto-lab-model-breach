@@ -21,13 +21,25 @@ to the decryption oracle, security falls to 2^209. The HiAE designers
 responded in ePrint 2025/1235, maintaining their claims are intact under
 the original model. Both positions are correct — which is exactly the point.
 
-Implements real AESL (one AES round, zero round key), a structurally correct
-toy-scale HiAE, and walks through all three attack phases with line-by-line
-output and full-scale complexity annotations. No backends. Every primitive and
-the Theorem 1 candidate enumeration are real, executed math — not mocks or
-recordings. The live attack runs at toy 2^8 scale; full-scale key recovery
-(2^209 time, 2^130 data) is annotated, never executed in-browser — the demo
-shows the instance's ground-truth key to confirm the toy pipeline's target.
+Implements real AESL (one AES round, zero round key, verified against the
+FIPS-197 round vector), a structurally correct toy-scale HiAE, and a live
+key-recovery attack that is **genuinely computed from oracle output**:
+
+1. **Observe** — one encryption-oracle query leaks the keystream block
+   `AESL(S0 ⊕ S2)` of the target's post-init state (`ct ⊕ pt`).
+2. **Guess-and-determine** — the attack searches an *honestly disclosed reduced
+   toy keyspace* (a public function of a 16-bit seed) for the one key whose
+   derived keystream reproduces what was observed.
+3. **Forge** — it builds a ciphertext+tag with the recovered key and confirms
+   the **decryption oracle accepts it** (and rejects a random-tag forgery).
+
+The recovered key is checked byte-for-byte against the instance and is never
+read from oracle metadata. **The reduced keyspace is the toy** — recovering a
+full random 256-bit HiAE key is the 2^209-time / 2^130-data result of ePrint
+2025/1203, which is annotated, never executed in-browser. The AESL differential
+math the paper uses (Theorem 1 candidate enumeration, the MITM key equation)
+ships as separately unit-tested library functions. No backends, no mocks, no
+recordings.
 
 ## When to Use It
 
@@ -41,7 +53,7 @@ shows the instance's ground-truth key to confirm the toy pipeline's target.
 
 **[systemslibrarian.github.io/crypto-lab-model-breach](https://systemslibrarian.github.io/crypto-lab-model-breach/)**
 
-The demo implements real AESL (one AES round with a zero round key) and a structurally correct toy-scale HiAE, then walks through all three phases of the extended-oracle algebraic attack with line-by-line output and full-scale complexity annotations. You can watch the attack succeed under the stronger decryption-oracle model and see why the same scheme remains secure under its original nonce-respecting claim — making the role of the threat model concrete rather than abstract.
+The demo implements real AESL (one AES round with a zero round key) and a structurally correct toy-scale HiAE, then runs a live attack that actually recovers the key of a toy instance from oracle output — observe the keystream, search the disclosed reduced keyspace for the matching key, and get the decryption oracle to accept a forgery signed with it. The recovered key is verified against the instance. This makes the threat-model point concrete: the forgery step only works because the decryption oracle is exposed, which is outside HiAE's stated model — and the same scheme stays secure under its original nonce-respecting claim.
 
 ## What Can Go Wrong
 
@@ -49,9 +61,14 @@ The demo implements real AESL (one AES round with a zero round key) and a struct
   AND a decryption oracle that accepts 2^128 forgery attempts. If your deployment
   cannot expose a decryption oracle to adversaries, you are in the standard model
   and HiAE's 256-bit claim holds.
-- **Toy scale vs full scale:** The demo runs on 4-block reduced HiAE with ~2^8
-  search spaces. Full attack: 2^130 data, 2^209 time. Not browser-runnable.
-  The algebraic structure is identical — only the scale differs.
+- **Toy scale vs full scale:** The live recovery brute-forces a *disclosed
+  2^16 toy keyspace* against real oracle output — this is what makes an
+  end-to-end, honestly-verified key recovery browser-runnable. It is not the
+  full algebraic attack: recovering a full random 256-bit key is 2^130 data /
+  2^209 time (ePrint 2025/1203) and is annotated, never executed. The paper's
+  AESL differential machinery (Theorem 1 enumeration, the MITM key equation)
+  is implemented and unit-tested, but the reduced keyspace — not that machinery
+  — is what the in-browser recovery drives.
 - **The concurrent paper:** Bille & Tischhauser (ePrint 2025/1180) independently
   reached the same conclusions simultaneously. This is not a solo discovery —
   it reflects a known gap in this family of AEADs.
@@ -83,8 +100,10 @@ npm run dev
 
 Vite + TypeScript strict + vanilla CSS. GitHub Pages. No backends.
 No external crypto libraries — the AES round function (AESL) and the toy HiAE
-are hand-implemented in `src/`; WebCrypto supplies randomness only (key, nonce,
-and probe-tag generation).
+are hand-implemented in `src/` and unit-tested with `vitest` (FIPS-197 round
+vector, AEAD round-trip, forgery rejection, and a black-box end-to-end recovery
+that would fail if the key were ever read from oracle metadata). WebCrypto
+supplies randomness only (the secret toy seed and forgery-probe tags).
 
 ---
 
