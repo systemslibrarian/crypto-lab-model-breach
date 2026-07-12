@@ -23,13 +23,23 @@ app.innerHTML = `
   <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="page-bg" aria-hidden="true"></div>
 
-  <!-- A plain div, not <header>: a bare <header> here would be an implicit
-       banner landmark, duplicating the shared site header's role="banner". -->
-  <div class="topbar">
-    <h1>When the Contract Breaks</h1>
-    <button id="theme-toggle" class="theme-toggle" type="button"
-            aria-label="Toggle dark and light theme">\u{1F319}</button>
-  </div>
+  <!-- Fleet hero standard. The shared site header owns role="banner"; the JS in
+       index.html demotes any implicit banner, so this <header> gets role="group".
+       The theme toggle stays in the DOM (main.ts wires it) but is hidden by the
+       shared header CSS; it lives here so the lab's theme JS keeps working. -->
+  <header class="cl-hero">
+    <div class="cl-hero-main">
+      <h1 class="cl-hero-title">Model Breach</h1>
+      <p class="cl-hero-sub">Threat models as contracts · HiAE case study</p>
+      <p class="cl-hero-desc">Walk a live case study where HiAE's 256-bit claim holds under its stated model, then watch it fall to 2<sup>209</sup> the moment an unlimited decryption oracle is added to the adversary.</p>
+      <button id="theme-toggle" class="theme-toggle" type="button"
+              aria-label="Toggle dark and light theme">\u{1F319}</button>
+    </div>
+    <aside class="cl-hero-why" aria-label="Why it matters">
+      <span class="cl-hero-why-label">WHY IT MATTERS</span>
+      <p class="cl-hero-why-text">A security proof is a contract with fine print: "secure" only means secure against the stated adversary. Miss the model boundary and you can deploy a provably-broken scheme while believing the headline bit-count.</p>
+    </aside>
+  </header>
 
   <main class="panel-grid" id="main-content">
 
