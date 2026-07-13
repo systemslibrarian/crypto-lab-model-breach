@@ -66,11 +66,30 @@ async function scanAllScenarios(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Run the live attack so the equation-check byte grid (match/miss cells), the
+ * forge accept/reject cards, and the oracle-bridge accept badge are all
+ * populated with real state, then scan that fully-realised view. This is what
+ * contrast-gates the new coloured cues in BOTH themes.
+ */
+async function scanAfterAttack(page: Page): Promise<void> {
+  await page.locator('#oc-run').click();
+  await expect(page.locator('#oc-ext-verdict')).toContainText('ACCEPTED', { timeout: 15000 });
+  await page.locator('#generate-instance').click();
+  await page.locator('#run-attack').click();
+  await expect(page.locator('#forge-result')).toBeVisible({ timeout: 25000 });
+  await expect(page.locator('#kv-candidate .kv-byte.kv-match')).toHaveCount(16);
+  await freeze(page);
+  await revealAll(page);
+  await scan(page);
+}
+
 test('no WCAG A/AA violations in dark theme', async ({ page }) => {
   await page.goto('.');
   await freeze(page);
   await revealAll(page);
   await scanAllScenarios(page);
+  await scanAfterAttack(page);
 });
 
 test('no WCAG A/AA violations in light theme', async ({ page }) => {
@@ -80,4 +99,5 @@ test('no WCAG A/AA violations in light theme', async ({ page }) => {
   await freeze(page);
   await revealAll(page);
   await scanAllScenarios(page);
+  await scanAfterAttack(page);
 });

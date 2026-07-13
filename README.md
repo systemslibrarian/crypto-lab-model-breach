@@ -41,6 +41,19 @@ math the paper uses (Theorem 1 candidate enumeration, the MITM key equation)
 ships as separately unit-tested library functions. No backends, no mocks, no
 recordings.
 
+The recovery is shown as what it actually is — an **algebraic equation check**,
+not a brute-force count. The captured keystream `A(S0 ⊕ S2)` is treated as a
+constraint: candidate keys are re-derived live and lit up **byte-by-byte** where
+they satisfy the equation, so wrong keys visibly fail on mismatched bytes and the
+recovered key satisfies all sixteen. A companion panel isolates *why the oracle
+matters* — the same candidate is unconfirmable in the ciphertext-only world and
+confirmed by a real decryption-oracle **accept** in the extended world — and a
+closing accept/reject contrast shows the forgery going through as the concrete
+meaning of "the contract broke." Panel A opens with a plain-language gloss of the
+four assumed terms (AEAD, nonce, nonce-respecting, decryption oracle), and its
+state grid animates the real update path `S15 ← A(S0 ⊕ S1) ⊕ A(S13) ⊕ X` on Run
+Attack rather than pulsing on a disconnected timer.
+
 ## When to Use It
 
 - You need to teach the difference between a security claim and absolute safety.

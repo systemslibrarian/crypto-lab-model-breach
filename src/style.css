@@ -232,6 +232,52 @@ h3 {
   color: var(--paper);
 }
 
+/* ------------------------------------------------------------------ */
+/* Glossary (Panel A "new here?" expandable)                           */
+/* ------------------------------------------------------------------ */
+.glossary {
+  margin: 0 0 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background-color: rgba(240,179,60,0.06);
+}
+html[data-theme='light'] .glossary {
+  background-color: rgba(160,91,0,0.06);
+}
+.glossary > summary {
+  cursor: pointer;
+  padding: 0.5rem 0.65rem;
+  font: 700 0.8rem var(--font-mono);
+  color: var(--warn);
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+.glossary > summary:focus-visible {
+  outline: 3px solid var(--warn);
+  outline-offset: 2px;
+}
+.gloss-hint {
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 0.35rem;
+}
+.gloss-list {
+  margin: 0;
+  padding: 0 0.75rem 0.6rem;
+  font-size: 0.8rem;
+}
+.gloss-list dt {
+  color: var(--paper);
+  font: 700 0.8rem var(--font-mono);
+  margin-top: 0.5rem;
+}
+.gloss-list dd {
+  margin: 0.1rem 0 0;
+  color: var(--muted);
+}
+.gloss-list dd em { color: var(--text); font-style: normal; font-weight: 600; }
+
 /* State diagram grids */
 .state-grid {
   display: grid;
@@ -269,10 +315,26 @@ html[data-theme='light'] .toy-grid .key-carry {
   to     { transform: scale(1); }
 }
 
+/* Update-path highlight: source cells (S0,S1,S13) that feed S15, and the
+   destination S15. Cued by border + weight + a corner glyph, not colour alone. */
+.state-cell.update-src {
+  border-color: var(--warn);
+  background-color: rgba(240,179,60,0.16);
+  font-weight: 700;
+}
+.state-cell.update-dst {
+  border-color: var(--ok);
+  background-color: rgba(49,212,143,0.16);
+  font-weight: 700;
+}
+html[data-theme='light'] .state-cell.update-src { background-color: rgba(160,91,0,0.12); }
+html[data-theme='light'] .state-cell.update-dst { background-color: rgba(11,122,69,0.12); }
+
 .state-note, .tiny {
   color: var(--muted);
   font-size: 0.78rem;
 }
+.state-note-live { display: block; margin-top: 0.25rem; }
 
 .toy-grid {
   display: grid;
@@ -358,6 +420,141 @@ html[data-theme='light'] .toy-grid .key-carry {
 }
 .scenario-card.ok   { border-left-color: var(--ok); }
 .scenario-card.warn { border-left-color: var(--warn); }
+
+/* ------------------------------------------------------------------ */
+/* Bridge — "why the oracle changes everything"                        */
+/* ------------------------------------------------------------------ */
+.bridge-lede, .mech-lede {
+  font-size: 0.86rem;
+  margin: 0 0 0.7rem;
+}
+.mech-lede .mono, .oc-guess, .kv-label .mono, .kv-byte { font-family: var(--font-mono); }
+
+.oracle-compare {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+@media (min-width: 560px) {
+  .oracle-compare { grid-template-columns: 1fr 1fr; }
+}
+.oc-side {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+}
+.oc-standard { border-left: 4px solid var(--muted); }
+.oc-extended { border-left: 4px solid var(--warn); }
+.oc-h {
+  font: 700 0.78rem var(--font-mono);
+  margin: 0 0 0.35rem;
+  color: var(--paper);
+}
+.oc-demo {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.oc-guess {
+  font-size: 0.76rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 0.35rem;
+  color: var(--text);
+}
+.oc-verdict {
+  font: 700 0.76rem var(--font-mono);
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--line);
+}
+.oc-unknown { color: var(--muted); }
+.oc-pending { color: var(--muted); }
+.oc-accept {
+  color: var(--ok);
+  border-color: var(--ok);
+  background-color: rgba(49,212,143,0.1);
+}
+.oc-reject {
+  color: var(--danger);
+  border-color: var(--danger);
+  background-color: rgba(240,79,60,0.1);
+}
+.oc-btn { margin-top: 0.55rem; }
+.oc-caption { margin: 0.7rem 0 0; }
+
+/* ------------------------------------------------------------------ */
+/* Keystream equation-check visual (Panel C)                           */
+/* ------------------------------------------------------------------ */
+.keystream-viz {
+  margin: 0 0 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  background-color: rgba(6,12,28,0.4);
+}
+html[data-theme='light'] .keystream-viz { background-color: rgba(18,29,57,0.04); }
+.kv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.kv-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.kv-bytes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+.kv-byte {
+  min-width: 1.55rem;
+  text-align: center;
+  padding: 0.2rem 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--text);
+  background-color: rgba(8,15,31,0.4);
+}
+html[data-theme='light'] .kv-byte { background-color: rgba(18,29,57,0.05); }
+.kv-byte.kv-observed {
+  border-color: var(--warn);
+  border-width: 2px;
+  color: var(--text);
+  font-weight: 700;
+}
+/* Match/miss cued by border weight + a leading glyph + colour (three cues, not
+   colour alone). The hex value stays --text for guaranteed contrast; the small
+   glyph carries the ok/danger hue and is kept AA on the faint tint. */
+.kv-byte.kv-match {
+  border-color: var(--ok);
+  border-width: 2px;
+  color: var(--text);
+  background-color: rgba(49,212,143,0.06);
+}
+.kv-byte.kv-match::before {
+  content: '✓'; font-size: 0.62rem; display: block; line-height: 0.75; color: var(--ok);
+}
+.kv-byte.kv-miss {
+  border-color: var(--danger);
+  border-width: 2px;
+  color: var(--text);
+  background-color: rgba(240,79,60,0.05);
+}
+.kv-byte.kv-miss::before {
+  content: '✗'; font-size: 0.62rem; display: block; line-height: 0.75; color: var(--danger);
+}
+.kv-status {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.kv-status-miss { color: var(--danger); }
+.kv-status-match { color: var(--ok); font-weight: 700; }
 
 /* ------------------------------------------------------------------ */
 /* Panel C — attack simulation                                         */
@@ -447,6 +644,51 @@ html[data-theme='light'] .attack-log {
   font-size: 0.78rem;
 }
 .disclaimer strong { color: var(--warn); }
+
+/* ------------------------------------------------------------------ */
+/* Forge-result — the felt "contract broke" accept/reject contrast     */
+/* ------------------------------------------------------------------ */
+.forge-result {
+  margin-top: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.65rem;
+}
+.fr-h {
+  font: 700 0.82rem var(--font-mono);
+  color: var(--warn);
+  margin: 0 0 0.5rem;
+}
+.fr-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+@media (min-width: 560px) {
+  .fr-cards { grid-template-columns: 1fr 1fr; }
+}
+.fr-card {
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.55rem;
+  font-size: 0.78rem;
+}
+.fr-card p { margin: 0.35rem 0 0; }
+.fr-accept {
+  border-left: 4px solid var(--ok);
+  background-color: rgba(49,212,143,0.08);
+}
+.fr-reject {
+  border-left: 4px solid var(--danger);
+  background-color: rgba(240,79,60,0.07);
+}
+.fr-badge {
+  font: 700 0.76rem var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.fr-accept .fr-badge { color: var(--ok); }
+.fr-reject .fr-badge { color: var(--danger); }
+.fr-note { margin: 0.55rem 0 0; }
 
 .hidden { display: none; }
 
