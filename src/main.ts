@@ -92,9 +92,11 @@ STATUS:  Secure under these conditions \u2713</pre>
       <h3>Full HiAE state (2048-bit)</h3>
       <div id="full-state" class="state-grid"
            aria-label="Full HiAE 16-block state diagram"></div>
-      <p class="state-note" id="state-note">Update path: S<sub>15</sub> \u2190 A(S<sub>0</sub> \u2295 S<sub>1</sub>) \u2295 A(S<sub>13</sub>) \u2295 X.
+      <p class="state-note" id="state-note">Each cell is one 128-bit <strong>state block</strong> \u2014 internal secret memory,
+        not the message. Update path: S<sub>15</sub> \u2190 A(S<sub>0</sub> \u2295 S<sub>1</sub>) \u2295 A(S<sub>13</sub>) \u2295 X.
         <span class="state-note-live">On <strong>Run Attack</strong>, the cells feeding S<sub>15</sub>
         (S<sub>0</sub>, S<sub>1</sub>, S<sub>13</sub>) light up in sequence so you can watch the state actually mutate.</span></p>
+      <p class="state-caption" id="state-caption" role="status" aria-live="polite">Idle \u2014 the cells narrate themselves once the attack runs.</p>
 
       <h3>Toy HiAE (4-block reduced)</h3>
       <div class="toy-grid"
@@ -142,11 +144,28 @@ STATUS:  Secure under these conditions \u2713</pre>
       </table>
 
       <div class="gap-wrap">
-        <div class="gap-bar" aria-hidden="true">
-          <span class="mark left">HiAE claim</span>
-          <span class="mark right">Attack model</span>
+        <p class="gap-title">How big is the breach? (bars are log-scale: length \u221d the exponent)</p>
+        <div class="magbars">
+          <div class="magbar-row">
+            <span class="magbar-name">HiAE claim</span>
+            <div class="magbar-track">
+              <div class="magbar-fill magbar-claim" style="width:100%">
+                <span class="magbar-val">2<sup>256</sup></span>
+              </div>
+            </div>
+          </div>
+          <div class="magbar-row">
+            <span class="magbar-name">Attack cost</span>
+            <div class="magbar-track">
+              <div class="magbar-fill magbar-attack" style="width:81.64%">
+                <span class="magbar-val">2<sup>209</sup></span>
+              </div>
+            </div>
+          </div>
         </div>
-        <p class="tiny">Threat model gap \u2014 the amber region is the territory the attack occupies.</p>
+        <p class="tiny gap-quant">The attack does not shave a little off \u2014 it drops the work by
+          <strong>2<sup>47</sup></strong>, roughly <strong>140 trillion\u00d7</strong> easier than the headline
+          claim. On a log scale that is the whole amber shortfall between the two bars above.</p>
       </div>
 
       <div class="scenario-tabs" role="tablist"
@@ -176,8 +195,9 @@ STATUS:  Secure under these conditions \u2713</pre>
             Each guess is a shot in the dark that can never be confirmed.</p>
           <div class="oc-demo">
             <div class="oc-guess" id="oc-std-guess">candidate key: 0x????</div>
-            <div class="oc-verdict oc-unknown" id="oc-std-verdict">? no way to check</div>
+            <div class="oc-verdict oc-unknown" id="oc-std-verdict" role="status" aria-live="polite">— idle</div>
           </div>
+          <button id="oc-std-run" type="button" class="oc-btn">Try to check the guess</button>
         </div>
         <div class="oc-side oc-extended">
           <h3 class="oc-h">Extended model \u2014 decryption oracle</h3>
@@ -190,14 +210,46 @@ STATUS:  Secure under these conditions \u2713</pre>
           <button id="oc-run" type="button" class="oc-btn">Ask the oracle</button>
         </div>
       </div>
-      <p class="tiny oc-caption">Same candidate, two worlds. Only the world with an oracle lets a rejected
-        forgery <em>eliminate</em> a candidate and an accepted one <em>confirm</em> it. Press the button to watch
-        one candidate get confirmed by an oracle accept \u2014 the concrete meaning of "the model changed."</p>
+      <p class="tiny oc-caption">Same candidate, two worlds. <strong>Press both buttons.</strong> The standard-model
+        side spins and then dead-ends \u2014 there is nothing to ask, so the guess can never resolve. The extended-model side
+        submits a real forgery and the oracle <em>confirms</em> the candidate. Feeling the left side fail is the point:
+        a decryption oracle is the one capability that turns an unverifiable guess into a checkable one.</p>
     </section>
 
     <!-- ============ PANEL C ============ -->
     <section class="panel" id="panel-c">
       <h2 class="panel-title">LIVE SIMULATION \u2014 TOY HIAE (4-BLOCK REDUCED)</h2>
+
+      <!-- Always-visible micro-explainer: makes the single-query leak concrete
+           BEFORE the jargon lede. Encrypt a zero block -> ct = pt XOR keystream,
+           so with pt = 0 the ciphertext IS the keystream block A(S0 XOR S2).
+           All three rows are computed live from the toy scheme, not faked. -->
+      <div class="leak-explainer">
+        <h3 class="leak-h">First, what is a "keystream leak"?</h3>
+        <p class="leak-lede">A stream cipher hides a message by XOR-ing it with a secret
+          <strong>keystream</strong>: <span class="mono">ciphertext = plaintext \u2295 keystream</span>.
+          Watch what happens if the attacker asks the encryption oracle to encrypt a block of
+          <strong>all zeros</strong>. Because <span class="mono">0 \u2295 keystream = keystream</span>,
+          the ciphertext that comes back <em>is</em> the keystream block itself \u2014 which for HiAE is exactly
+          <span class="mono">A(S0 \u2295 S2)</span>. One query, and a piece of the secret state leaks out in the clear.</p>
+        <div class="leak-rows">
+          <div class="leak-row">
+            <span class="leak-label">Plaintext (all zeros)</span>
+            <div class="leak-bytes" id="leak-pt"></div>
+          </div>
+          <div class="leak-row">
+            <span class="leak-label">Ciphertext back from oracle</span>
+            <div class="leak-bytes" id="leak-ct"></div>
+          </div>
+          <div class="leak-row">
+            <span class="leak-label">\u2234 Derived keystream <span class="mono">A(S0\u2295S2)</span> = ct \u2295 0</span>
+            <div class="leak-bytes" id="leak-ks"></div>
+          </div>
+        </div>
+        <p class="tiny leak-foot">The bottom two rows are identical byte-for-byte \u2014 that is the whole point:
+          encrypting zeros hands the attacker the keystream directly. The attack below turns this one leaked
+          block into an <em>equation</em> every candidate key must satisfy.</p>
+      </div>
 
       <p class="mech-lede">The break is <strong>not</strong> "try every number." It is: the observed keystream
         <span class="mono">A(S0 \u2295 S2)</span> is an <em>equation</em>, and a candidate key is kept only if it
@@ -214,6 +266,35 @@ STATUS:  Secure under these conditions \u2713</pre>
           <div class="kv-bytes" id="kv-candidate"></div>
         </div>
         <p class="kv-status" id="kv-status">Generate an instance and run the attack to see the equation check.</p>
+      </div>
+
+      <!-- Method-honesty callout: the browser's toy seed search and the paper's
+           2^209 differential attack are DIFFERENT techniques, not the same method
+           at two sizes. Prevents the false "the paper just brute-forces bigger". -->
+      <div class="method-contrast">
+        <h3 class="mc-h">Two different methods — not one method at two sizes</h3>
+        <div class="mc-cols">
+          <div class="mc-col mc-browser">
+            <span class="mc-tag">WHAT THIS BROWSER DOES</span>
+            <ul>
+              <li><strong>Exhaustive seed search.</strong> It walks all 2<sup>16</sup> keys in the disclosed toy keyspace.</li>
+              <li>For each one it re-derives <span class="mono">A(S0⊕S2)</span> and keeps the key whose block matches the leak.</li>
+              <li>Feasible in a browser <em>only</em> because the keyspace was deliberately shrunk to 2<sup>16</sup>.</li>
+            </ul>
+          </div>
+          <div class="mc-col mc-paper">
+            <span class="mc-tag">WHAT THE PAPER DOES</span>
+            <ul>
+              <li><strong>Meet-in-the-middle differential algebra.</strong> It never enumerates 2<sup>209</sup> keys.</li>
+              <li>It solves the AESL structure with a guess-and-determine + differential technique to <em>cut</em> the work to 2<sup>209</sup>.</li>
+              <li>The browser never runs this algorithm — it is annotated, not executed.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="tiny mc-foot"><strong>These are not the same algorithm.</strong> The toy is a faithful
+          end-to-end <em>stand-in</em> that shows the leak → recover → forge story truthfully; it is not a
+          scaled-down copy of ePrint 2025/1203. Believing the real attack is "just this search, bigger" is the
+          one wrong lesson to take from this page.</p>
       </div>
 
       <div class="actions">
@@ -360,6 +441,34 @@ const kvCandLabelEl   = $('kv-cand-label');
 const kvVizEl         = $('keystream-viz');
 
 /* ------------------------------------------------------------------ */
+/* Leak micro-explainer (Panel C) — render the three concrete rows      */
+/* (zero plaintext, ciphertext, derived keystream) live so the learner  */
+/* SEES that ct-of-zeros IS the keystream block A(S0 ⊕ S2).             */
+/* ------------------------------------------------------------------ */
+function renderLeakBytes(container: HTMLElement, bytes: Uint8Array, cls = ''): void {
+  container.textContent = '';
+  for (let i = 0; i < bytes.length; i++) {
+    const cell = document.createElement('span');
+    cell.className = 'leak-byte' + (cls ? ' ' + cls : '');
+    cell.textContent = bytes[i].toString(16).padStart(2, '0');
+    container.appendChild(cell);
+  }
+}
+
+(function renderLeakExplainer() {
+  // Use a concrete, fixed demo key so the block is stable across reloads. This is
+  // illustrative crypto, computed live from the real toy scheme — not faked.
+  const demoKey = deriveToyKey(0x1a2b);
+  const zero = new Uint8Array(16);
+  const out = encryptToyHiAE(demoKey, new Uint8Array(TOY_NONCE), zero, new Uint8Array(TOY_AD));
+  const ct = out.ciphertext.subarray(0, 16);
+  const ks = keystreamBlockOf(demoKey); // == ct, since pt is all zeros
+  renderLeakBytes($('leak-pt'), zero, 'leak-zero');
+  renderLeakBytes($('leak-ct'), ct);
+  renderLeakBytes($('leak-ks'), ks, 'leak-derived');
+})();
+
+/* ------------------------------------------------------------------ */
 /* Scenario tabs                                                       */
 /* ------------------------------------------------------------------ */
 const scenarios: Record<ScenarioId, { text: string; cls: string }> = {
@@ -449,6 +558,17 @@ const prefersReducedMotion =
 // destination S15, so the animation shows the scheme genuinely mutating rather
 // than pulsing on a disconnected timer. Reduced-motion users get a single static
 // highlight of the same source/destination cells (no timers, no flashing).
+const stateCaptionEl = $('state-caption');
+
+// Per-cell gloss tying each highlighted block back to the leak the attack reads,
+// so the moving cells carry meaning instead of reading as decoration.
+const CELL_CAPTIONS: Record<number, string> = {
+  0: 'S0 — one of the two blocks that build the keystream A(S0 ⊕ S2) the attack observes.',
+  1: 'S1 — mixes with S0 through the AES round A() to feed the new block.',
+  13: 'S13 — the second source run through A() before it lands in S15.',
+  15: 'S15 — where the freshly mixed value lands. This is the state actually mutating each step.',
+};
+
 function animateUpdatePath(): void {
   const cells = fullState.querySelectorAll<HTMLDivElement>('.state-cell');
   cells.forEach(c => c.classList.remove('pulse', 'update-src', 'update-dst'));
@@ -457,24 +577,32 @@ function animateUpdatePath(): void {
   if (prefersReducedMotion) {
     src.forEach(i => cells[i]?.classList.add('update-src'));
     cells[15]?.classList.add('update-dst');
+    stateCaptionEl.textContent =
+      'S0, S2 feed the keystream A(S0 ⊕ S2) the attack reads; S0/S1/S13 feed the update, and S15 is where the new mixing lands.';
     return;
   }
 
   let step = 0;
   const total = src.length + 1;
+  stateCaptionEl.textContent = 'Watch: the blocks that feed S15 light up one at a time.';
   const timer = window.setInterval(() => {
     if (step < src.length) {
-      cells[src[step]]?.classList.add('update-src');
-      cells[src[step]]?.classList.add('pulse');
+      const i = src[step];
+      cells[i]?.classList.add('update-src');
+      cells[i]?.classList.add('pulse');
+      stateCaptionEl.textContent = CELL_CAPTIONS[i] ?? '';
     } else {
       cells[15]?.classList.add('update-dst');
       cells[15]?.classList.add('pulse');
+      stateCaptionEl.textContent = CELL_CAPTIONS[15];
     }
     step++;
     if (step >= total) {
       window.clearInterval(timer);
       window.setTimeout(() => {
         cells.forEach(c => c.classList.remove('pulse', 'update-src', 'update-dst'));
+        stateCaptionEl.textContent =
+          'S0, S2 feed the keystream you observe; S15 is where the new mixing lands each step.';
       }, 1600);
     }
   }, 550);
@@ -620,9 +748,28 @@ function renderProgress(prog: AttackProgress): void {
 /* ------------------------------------------------------------------ */
 const ocStdGuessEl   = $('oc-std-guess');
 const ocStdVerdictEl = $('oc-std-verdict');
+const ocStdRunBtnEl  = $('oc-std-run') as HTMLButtonElement;
 const ocExtGuessEl   = $('oc-ext-guess');
 const ocExtVerdictEl = $('oc-ext-verdict');
 const ocRunBtnEl     = $('oc-run') as HTMLButtonElement;
+
+// Standard-model side: let the learner TRY to check the guess and feel it dead-end.
+// It spins, then resolves to "unresolvable" — there is no oracle to ask, so no
+// candidate can ever be confirmed. Felt asymmetry, not asserted asymmetry.
+ocStdRunBtnEl.addEventListener('click', async () => {
+  ocStdRunBtnEl.disabled = true;
+  const seedBytes = new Uint8Array(2);
+  crypto.getRandomValues(seedBytes);
+  const seed = ((seedBytes[0] | (seedBytes[1] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0;
+  const label = '0x' + seed.toString(16).padStart(4, '0');
+  ocStdGuessEl.textContent = 'candidate key: ' + label;
+  ocStdVerdictEl.textContent = '… looking for something to ask';
+  ocStdVerdictEl.className = 'oc-verdict oc-pending';
+  if (!prefersReducedMotion) await sleep(900);
+  ocStdVerdictEl.textContent = '? unresolvable — no oracle to ask';
+  ocStdVerdictEl.className = 'oc-verdict oc-unknown';
+  ocStdRunBtnEl.disabled = false;
+});
 
 ocRunBtnEl.addEventListener('click', async () => {
   ocRunBtnEl.disabled = true;

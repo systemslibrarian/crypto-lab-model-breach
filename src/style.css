@@ -335,6 +335,21 @@ html[data-theme='light'] .state-cell.update-dst { background-color: rgba(11,122,
   font-size: 0.78rem;
 }
 .state-note-live { display: block; margin-top: 0.25rem; }
+.state-note strong { color: var(--paper); }
+
+/* Live per-cell caption for the state animation. Border-left + accent title so
+   it reads as a running narration tied to the highlighted cell. */
+.state-caption {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text);
+  border-left: 3px solid var(--warn);
+  padding: 0.3rem 0.5rem;
+  background-color: rgba(240,179,60,0.06);
+  border-radius: 0 0.3rem 0.3rem 0;
+  min-height: 1.2rem;
+}
+html[data-theme='light'] .state-caption { background-color: rgba(160,91,0,0.06); }
 
 .toy-grid {
   display: grid;
@@ -370,25 +385,45 @@ html[data-theme='light'] .state-cell.update-dst { background-color: rgba(11,122,
 .ok-text  { color: var(--ok); }
 .danger-text { color: var(--danger); }
 
-/* Gap bar */
-.gap-wrap { margin: 0.7rem 0; }
-.gap-bar {
-  position: relative;
-  height: 0.7rem;
-  border-radius: 999px;
-  background: linear-gradient(90deg,
-    rgba(49,212,143,0.45) 0%,
-    rgba(240,179,60,0.8) 58%,
-    rgba(236,79,60,0.6) 100%);
+/* Magnitude bars — the 2^256 vs 2^209 relationship rendered as ACTUAL bar
+   lengths on a log scale (length proportional to the exponent), so the headline
+   number is felt as a quantity, not just read as a superscript. */
+.gap-wrap { margin: 0.9rem 0; }
+.gap-title {
+  margin: 0 0 0.5rem;
+  font: 700 0.76rem var(--font-mono);
+  color: var(--paper);
 }
-.gap-bar .mark {
-  position: absolute;
-  top: 0.85rem;
-  font: 0.7rem var(--font-mono);
+.magbars { display: flex; flex-direction: column; gap: 0.4rem; }
+.magbar-row { display: flex; align-items: center; gap: 0.5rem; }
+.magbar-name {
+  flex: 0 0 5.5rem;
+  font: 0.72rem var(--font-mono);
   color: var(--muted);
 }
-.gap-bar .left  { left: 0; }
-.gap-bar .right { right: 0; }
+.magbar-track {
+  flex: 1 1 auto;
+  background-color: rgba(8,15,31,0.4);
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  overflow: hidden;
+}
+html[data-theme='light'] .magbar-track { background-color: rgba(18,29,57,0.05); }
+.magbar-fill {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 0.3rem 0 0 0.3rem;
+}
+.magbar-claim { background-color: rgba(49,212,143,0.28); }
+.magbar-attack { background-color: rgba(240,79,60,0.32); }
+html[data-theme='light'] .magbar-claim { background-color: rgba(11,122,69,0.22); }
+html[data-theme='light'] .magbar-attack { background-color: rgba(185,35,23,0.2); }
+.magbar-val { font: 700 0.74rem var(--font-mono); color: var(--text); }
+.gap-quant { margin: 0.55rem 0 0; }
+.gap-quant strong { color: var(--danger); }
 
 /* Scenario tabs */
 .scenario-tabs {
@@ -483,6 +518,90 @@ html[data-theme='light'] .state-cell.update-dst { background-color: rgba(11,122,
 }
 .oc-btn { margin-top: 0.55rem; }
 .oc-caption { margin: 0.7rem 0 0; }
+
+/* ------------------------------------------------------------------ */
+/* Leak micro-explainer (Panel C) — always-visible concrete leak        */
+/* ------------------------------------------------------------------ */
+.leak-explainer {
+  margin: 0 0 0.8rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--warn);
+  border-radius: 0.5rem;
+  padding: 0.7rem;
+  background-color: rgba(240,179,60,0.05);
+}
+html[data-theme='light'] .leak-explainer { background-color: rgba(160,91,0,0.05); }
+.leak-h {
+  margin: 0 0 0.35rem;
+  font: 700 0.85rem var(--font-mono);
+  color: var(--warn);
+}
+.leak-lede { margin: 0 0 0.6rem; font-size: 0.84rem; }
+.leak-lede .mono, .leak-label .mono { font-family: var(--font-mono); }
+.leak-rows { display: flex; flex-direction: column; gap: 0.45rem; }
+.leak-row { display: flex; flex-direction: column; gap: 0.2rem; }
+.leak-label { font-size: 0.74rem; color: var(--muted); }
+.leak-bytes { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+.leak-byte {
+  min-width: 1.55rem;
+  text-align: center;
+  padding: 0.2rem 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  font: 0.72rem var(--font-mono);
+  color: var(--text);
+  background-color: rgba(8,15,31,0.4);
+}
+html[data-theme='light'] .leak-byte { background-color: rgba(18,29,57,0.05); }
+.leak-byte.leak-zero { color: var(--muted); }
+.leak-byte.leak-derived {
+  border-color: var(--ok);
+  border-width: 2px;
+  font-weight: 700;
+}
+.leak-foot { margin: 0.6rem 0 0; }
+.leak-foot em { color: var(--text); font-style: normal; font-weight: 600; }
+
+/* ------------------------------------------------------------------ */
+/* Method-contrast callout (Panel C) — toy search vs paper differential */
+/* ------------------------------------------------------------------ */
+.method-contrast {
+  margin: 0 0 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.7rem;
+  background-color: rgba(6,12,28,0.35);
+}
+html[data-theme='light'] .method-contrast { background-color: rgba(18,29,57,0.04); }
+.mc-h {
+  margin: 0 0 0.5rem;
+  font: 700 0.85rem var(--font-mono);
+  color: var(--warn);
+}
+.mc-cols { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+@media (min-width: 560px) { .mc-cols { grid-template-columns: 1fr 1fr; } }
+.mc-col {
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.6rem 0.6rem;
+}
+.mc-browser { border-left: 4px solid var(--ok); }
+.mc-paper { border-left: 4px solid var(--danger); }
+.mc-tag {
+  display: block;
+  font: 700 0.68rem var(--font-mono);
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+}
+.mc-browser .mc-tag { color: var(--ok); }
+.mc-paper .mc-tag { color: var(--danger); }
+.mc-col ul { margin: 0; padding-left: 1.1rem; }
+.mc-col li { font-size: 0.78rem; margin: 0.25rem 0; }
+.mc-col li strong { color: var(--paper); }
+.mc-col .mono { font-family: var(--font-mono); }
+.mc-foot { margin: 0.6rem 0 0; }
+.mc-foot strong { color: var(--warn); }
+.mc-foot em { color: var(--text); font-style: normal; font-weight: 600; }
 
 /* ------------------------------------------------------------------ */
 /* Keystream equation-check visual (Panel C)                           */

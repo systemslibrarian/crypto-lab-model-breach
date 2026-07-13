@@ -54,6 +54,21 @@ four assumed terms (AEAD, nonce, nonce-respecting, decryption oracle), and its
 state grid animates the real update path `S15 ← A(S0 ⊕ S1) ⊕ A(S13) ⊕ X` on Run
 Attack rather than pulsing on a disconnected timer.
 
+For a newcomer, the mechanism is now made concrete before the argument leans on it.
+An always-visible **"what is a keystream leak?"** micro-explainer encrypts a block
+of zeros live and shows three byte rows — zero plaintext, ciphertext, and the
+derived keystream — so the learner *sees* that `ct` of zeros literally **is** the
+keystream block `A(S0 ⊕ S2)`, and why a single query leaks a testable constraint.
+A **method-honesty callout** states plainly that the browser's exhaustive 2^16 seed
+search and the paper's 2^209 meet-in-the-middle differential attack are *different
+techniques* — not one method at two sizes — so nobody leaves thinking the real
+attack is just this search scaled up. The oracle bridge is interactive on **both**
+sides: pressing the standard-model button spins and dead-ends ("unresolvable — no
+oracle to ask"), letting the learner feel the asymmetry by trying it. The state
+grid narrates itself with a per-cell caption tying each highlighted block back to
+the leak, and the threat-model gap is drawn as **log-scale magnitude bars**
+(2^256 vs 2^209, ≈ 2^47 easier) instead of a decorative gradient.
+
 ## When to Use It
 
 - You need to teach the difference between a security claim and absolute safety.
