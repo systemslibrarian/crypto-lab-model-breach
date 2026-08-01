@@ -230,7 +230,7 @@ STATUS:  Secure under these conditions \u2713</pre>
           <strong>keystream</strong>: <span class="mono">ciphertext = plaintext \u2295 keystream</span>.
           Watch what happens if the attacker asks the encryption oracle to encrypt a block of
           <strong>all zeros</strong>. Because <span class="mono">0 \u2295 keystream = keystream</span>,
-          the ciphertext that comes back <em>is</em> the keystream block itself \u2014 which for HiAE is exactly
+          the ciphertext that comes back <em>is</em> the keystream block itself \u2014 which for this 4-block toy HiAE is exactly
           <span class="mono">A(S0 \u2295 S2)</span>. One query, and a piece of the secret state leaks out in the clear.</p>
         <div class="leak-rows">
           <div class="leak-row">
