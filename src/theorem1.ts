@@ -56,29 +56,59 @@ function cartesianProduct<T>(sets: T[][]): T[][] {
   return acc;
 }
 
+/** One active S-box's differential constraint: the input/output difference it
+ *  must satisfy and the S-box inputs that actually do. Exposed so the UI can
+ *  show the paper's differential step operating on real numbers rather than
+ *  describe it. */
+export interface SboxConstraint {
+  /** Byte position after ShiftRows. */
+  index: number;
+  deltaIn: number;
+  deltaOut: number;
+  /** Every x with S(x) ⊕ S(x ⊕ δin) = δout — 0, 2 or 4 of them. */
+  candidates: number[];
+}
+
+/**
+ * The per-S-box constraints an (α, β) differential across one AESL call imposes.
+ * This is the first half of the enumeration: push α through ShiftRows, pull β
+ * back through the inverse MixColumns, and solve each active S-box from the DDT.
+ */
+export function activeSboxConstraints(alpha: Uint8Array, beta: Uint8Array): SboxConstraint[] {
+  const alphaSR = shiftRows(alpha);
+  const betaPreMC = mixColumnsInv(beta);
+  const activeIndices = Array.from(alphaSR.entries())
+    .filter(([, v]) => v !== 0)
+    .map(([idx]) => idx);
+
+  return activeIndices.map((idx) => ({
+    index: idx,
+    deltaIn: alphaSR[idx],
+    deltaOut: betaPreMC[idx],
+    candidates: sboxDiffCandidates(alphaSR[idx], betaPreMC[idx]),
+  }));
+}
+
 function enumeratePairCandidates(
   alpha: Uint8Array,
   beta: Uint8Array,
   base: Uint8Array,
 ): Array<{ x: Uint8Array; xp: Uint8Array }> {
   const alphaSR = shiftRows(alpha);
-  const betaPreMC = mixColumnsInv(beta);
   const baseSR = shiftRows(base);
-  const activeIndices = Array.from(alphaSR.entries())
-    .filter(([, v]) => v !== 0)
-    .map(([idx]) => idx);
+  const constraints = activeSboxConstraints(alpha, beta);
+  const activeIndices = constraints.map((c) => c.index);
 
   if (activeIndices.length !== 4) {
     throw new Error(`Toy theorem1 expects 4 active S-boxes after ShiftRows, got ${activeIndices.length}`);
   }
 
   const perByteCandidates: number[][] = [];
-  for (const idx of activeIndices) {
-    const candidates = sboxDiffCandidates(alphaSR[idx], betaPreMC[idx]);
-    if (candidates.length === 0) {
+  for (const constraint of constraints) {
+    if (constraint.candidates.length === 0) {
       return [];
     }
-    perByteCandidates.push(candidates);
+    perByteCandidates.push(constraint.candidates);
   }
 
   const products = cartesianProduct(perByteCandidates);

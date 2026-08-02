@@ -607,6 +607,80 @@ html[data-theme='light'] .method-contrast { background-color: rgba(18,29,57,0.04
 .mc-foot em { color: var(--text); font-style: normal; font-weight: 600; }
 
 /* ------------------------------------------------------------------ */
+/* Differential step (Panel C) — the paper's technique, executed        */
+/* Reuses the existing tokens so both themes stay AA without new colours */
+/* ------------------------------------------------------------------ */
+.diffstep {
+  margin: 0 0 0.8rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--danger);
+  border-radius: 0.5rem;
+  padding: 0.7rem;
+  background-color: rgba(6,12,28,0.35);
+}
+html[data-theme='light'] .diffstep { background-color: rgba(18,29,57,0.04); }
+.ds-h {
+  margin: 0 0 0.35rem;
+  font: 700 0.85rem var(--font-mono);
+  color: var(--danger);
+}
+.ds-sub {
+  margin: 0 0 0.4rem;
+  font: 700 0.74rem var(--font-mono);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.ds-lede { margin: 0 0 0.7rem; font-size: 0.84rem; }
+.ds-lede .mono, .ds-row .mono, .ds-table .mono { font-family: var(--font-mono); }
+.ds-ddt {
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.ds-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+.ds-stat {
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.ds-stat-val { font: 700 0.95rem var(--font-mono); color: var(--text); }
+.ds-stat-lbl { font-size: 0.68rem; color: var(--muted); }
+.ds-stat-key { border-color: var(--warn); }
+.ds-stat-key .ds-stat-val { color: var(--warn); }
+.ds-out { margin-top: 0.6rem; }
+.ds-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0 0 0.3rem; font-size: 0.78rem; }
+.ds-row-lbl { color: var(--muted); }
+.ds-row-val { color: var(--text); word-break: break-all; }
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 0.7rem;
+  font-size: 0.74rem;
+}
+.ds-table th, .ds-table td {
+  border: 1px solid var(--line);
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+}
+.ds-table th { color: var(--muted); font-weight: 700; }
+.ds-table td { color: var(--text); }
+.ds-checks { margin-top: 0.5rem; }
+.ds-check { margin: 0.2rem 0; font-size: 0.78rem; }
+.ds-verdict { margin: 0.5rem 0 0; font-size: 0.82rem; font-weight: 600; }
+.ds-scale { margin: 0.7rem 0 0; }
+.ds-scale strong { color: var(--warn); }
+.ds-scale em { color: var(--text); font-style: normal; font-weight: 600; }
+
+/* ------------------------------------------------------------------ */
 /* Keystream equation-check visual (Panel C)                           */
 /* ------------------------------------------------------------------ */
 .keystream-viz {

@@ -3,6 +3,8 @@ import { runModelBreachAttack, type AttackProgress } from './attack';
 import { toHex } from './bytes';
 import { decryptOracle, encryptToyHiAE } from './hiae';
 import { deriveToyKey, TOY_AD, TOY_NONCE, TOY_SEED_BITS, TOY_SEED_SPACE } from './toykey';
+import { ddtCensus, runDifferentialStep, type DifferentialStepResult } from './differential';
+import { SBOX } from './aesl';
 
 /** First keystream block a key would produce = ct of a zero block (ct ⊕ 0).
  *  This is exactly A(S0 ⊕ S2) after AD absorption — the block the attack observes
@@ -287,7 +289,8 @@ STATUS:  Secure under these conditions \u2713</pre>
             <ul>
               <li><strong>Meet-in-the-middle differential algebra.</strong> It never enumerates 2<sup>209</sup> keys.</li>
               <li>It solves the AESL structure with a guess-and-determine + differential technique to <em>cut</em> the work to 2<sup>209</sup>.</li>
-              <li>The browser never runs this algorithm — it is annotated, not executed.</li>
+              <li>You can run that differential step yourself, on real AESL output, in the panel directly below.
+                What stays annotated is <em>chaining</em> it across the full 2048-bit state.</li>
             </ul>
           </div>
         </div>
@@ -295,6 +298,34 @@ STATUS:  Secure under these conditions \u2713</pre>
           end-to-end <em>stand-in</em> that shows the leak → recover → forge story truthfully; it is not a
           scaled-down copy of ePrint 2025/1203. Believing the real attack is "just this search, bigger" is the
           one wrong lesson to take from this page.</p>
+      </div>
+
+      <!-- ============ THE PAPER'S TECHNIQUE, EXECUTED ============ -->
+      <div class="diffstep" id="diffstep">
+        <h3 class="ds-h">Run the paper's technique — the differential step, measured</h3>
+        <p class="ds-lede">The seed search above is the stand-in. <em>This</em> is the paper's actual move, running
+          on real AESL output. Plant a state pair differing by <span class="mono">α</span>, read the output difference
+          <span class="mono">β = AESL(x) ⊕ AESL(x ⊕ α)</span>, and watch what knowing β does to the search space:
+          each active S-box stops accepting all 256 inputs and accepts only those satisfying
+          <span class="mono">S(x) ⊕ S(x ⊕ δ<sub>in</sub>) = δ<sub>out</sub></span>. Every number below is measured from
+          the run, including the enumeration's own candidate count.</p>
+
+        <div class="ds-ddt" id="ds-ddt">
+          <h4 class="ds-sub">Why it pays — the AES S-box difference table, counted here on load</h4>
+          <div class="ds-stats" id="ds-ddt-stats"></div>
+          <p class="tiny" id="ds-ddt-note"></p>
+        </div>
+
+        <div class="actions">
+          <button id="run-diffstep" type="button">Run the differential step</button>
+        </div>
+        <p id="ds-meta" class="tiny" role="status" aria-live="polite">Not run yet.</p>
+        <div id="diffstep-out" class="ds-out" hidden></div>
+
+        <p class="tiny ds-scale"><strong>Scale, plainly:</strong> this runs the differential step on
+          <em>one</em> AESL call with four active S-boxes — the size a browser can afford. The paper chains the same
+          step across HiAE's 2048-bit state, and that chaining is where 2<sup>209</sup> comes from. The chaining is
+          not executed here and this panel does not claim it: what it claims, and measures, is the per-step collapse.</p>
       </div>
 
       <div class="actions">
@@ -467,6 +498,102 @@ function renderLeakBytes(container: HTMLElement, bytes: Uint8Array, cls = ''): v
   renderLeakBytes($('leak-ct'), ct);
   renderLeakBytes($('leak-ks'), ks, 'leak-derived');
 })();
+
+/* ------------------------------------------------------------------ */
+/* The paper's technique, executed (Panel C)                           */
+/* The differential step from ePrint 2025/1203 run on real AESL output, */
+/* with the search-space collapse it produces measured on each run      */
+/* rather than described. The DDT census below is counted on load.      */
+/* ------------------------------------------------------------------ */
+function fmtCount(n: number): string {
+  return n.toLocaleString('en-US');
+}
+
+function statBlock(label: string, value: string, cls = ''): string {
+  return `<div class="ds-stat${cls ? ' ' + cls : ''}"><span class="ds-stat-val">${value}</span><span class="ds-stat-lbl">${label}</span></div>`;
+}
+
+(function renderDdtCensus() {
+  const census = ddtCensus(SBOX);
+  $('ds-ddt-stats').innerHTML =
+    statBlock('(δin, δout) pairs counted', fmtCount(census.pairs)) +
+    statBlock('pairs with NO solution', fmtCount(census.withZero)) +
+    statBlock('pairs with 2 solutions', fmtCount(census.withTwo)) +
+    statBlock('pairs with 4 solutions', fmtCount(census.withFour)) +
+    statBlock('mean solutions per pair', census.meanSolutionsPerPair.toFixed(2), 'ds-stat-key');
+  $('ds-ddt-note').textContent =
+    'Counted by building the table: ' + fmtCount(census.totalSolutions) + ' solutions spread over ' +
+    fmtCount(census.pairs) + ' difference pairs, so an active S-box whose output difference is known keeps ' +
+    census.meanSolutionsPerPair.toFixed(2) + ' input on average instead of 256. ' +
+    'Slightly over half the pairs are impossible outright, which is why a wrong differential dies immediately.';
+})();
+
+function renderDifferentialRun(r: DifferentialStepResult): string {
+  const hexOf = (b: Uint8Array) => Array.from(b).map(v => v.toString(16).padStart(2, '0')).join('');
+  const rows = r.constraints
+    .map(
+      c => `<tr>
+        <td>byte ${c.index}</td>
+        <td class="mono">0x${c.deltaIn.toString(16).padStart(2, '0')}</td>
+        <td class="mono">0x${c.deltaOut.toString(16).padStart(2, '0')}</td>
+        <td class="mono">${c.candidates.length}</td>
+        <td class="mono">${c.candidates.map(v => '0x' + v.toString(16).padStart(2, '0')).join(' ') || '—'}</td>
+      </tr>`,
+    )
+    .join('');
+
+  const allOk = r.solved && r.betaReproduced && r.matchesPlanted;
+  const check = (ok: boolean, text: string) =>
+    `<p class="ds-check ${ok ? 'ok-text' : 'danger-text'}"><span aria-hidden="true">${ok ? '✓' : '✗'}</span> ${text}</p>`;
+
+  return `
+    <div class="ds-diff">
+      <p class="ds-row"><span class="ds-row-lbl">α (input difference)</span><span class="mono ds-row-val" id="ds-alpha">${hexOf(r.alpha)}</span></p>
+      <p class="ds-row"><span class="ds-row-lbl">β = AESL(x) ⊕ AESL(x ⊕ α)</span><span class="mono ds-row-val" id="ds-beta">${hexOf(r.beta)}</span></p>
+    </div>
+    <table class="ds-table" aria-label="Active S-box differential constraints for this run">
+      <thead><tr><th scope="col">Active S-box</th><th scope="col">δ<sub>in</sub></th><th scope="col">δ<sub>out</sub></th><th scope="col">solutions</th><th scope="col">which inputs</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="ds-stats">
+      ${statBlock('active S-boxes', String(r.activeSboxes))}
+      ${statBlock('space knowing α only', '2^' + r.naiveBits.toFixed(0))}
+      ${statBlock('space knowing α and β', '2^' + r.survivingBits.toFixed(0), 'ds-stat-key')}
+      ${statBlock('measured reduction', '2^' + r.reductionBits.toFixed(0), 'ds-stat-key')}
+      ${statBlock('candidate pairs enumerated', fmtCount(r.candidatesEnumerated))}
+      ${statBlock('enumeration time', r.elapsedMs.toFixed(1) + ' ms')}
+    </div>
+    <div class="ds-checks" id="ds-checks">
+      ${check(r.solved, 'The Theorem 1 enumeration returned a single surviving state.')}
+      ${check(r.betaReproduced, 'That state re-derives the observed β under real AESL — the differential is satisfied, not assumed.')}
+      ${check(r.matchesPlanted, 'It equals the state that was planted, which the enumeration was never told.')}
+    </div>
+    <p class="ds-verdict ${allOk ? 'ok-text' : 'danger-text'}" id="ds-verdict">${
+      allOk
+        ? 'Knowing β collapsed ' + fmtCount(r.naiveSpace) + ' possibilities to ' + fmtCount(r.survivingSpace) +
+          ' — a measured 2^' + r.reductionBits.toFixed(0) + ' cut, from one differential, on one AESL call.'
+        : 'This differential did not pin down a unique state. Run it again — that outcome is reported, not hidden.'
+    }</p>`;
+}
+
+const dsOutEl = $('diffstep-out');
+const dsMetaEl = $('ds-meta');
+const dsRunBtnEl = $('run-diffstep') as HTMLButtonElement;
+
+dsRunBtnEl.addEventListener('click', () => {
+  dsRunBtnEl.disabled = true;
+  try {
+    const result = runDifferentialStep();
+    dsOutEl.innerHTML = renderDifferentialRun(result);
+    dsOutEl.hidden = false;
+    dsMetaEl.textContent =
+      'Ran on a fresh random pair: ' + result.activeSboxes + ' active S-boxes, ' +
+      fmtCount(result.candidatesEnumerated) + ' candidate pairs enumerated in ' +
+      result.elapsedMs.toFixed(1) + ' ms. Press again for a different differential.';
+  } finally {
+    dsRunBtnEl.disabled = false;
+  }
+});
 
 /* ------------------------------------------------------------------ */
 /* Scenario tabs                                                       */

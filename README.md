@@ -36,10 +36,21 @@ key-recovery attack that is **genuinely computed from oracle output**:
 The recovered key is checked byte-for-byte against the instance and is never
 read from oracle metadata. **The reduced keyspace is the toy** — recovering a
 full random 256-bit HiAE key is the 2^209-time / 2^130-data result of ePrint
-2025/1203, which is annotated, never executed in-browser. The AESL differential
-math the paper uses (Theorem 1 candidate enumeration, the MITM key equation)
-ships as separately unit-tested library functions. No backends, no mocks, no
-recordings.
+2025/1203, which is annotated, never executed in-browser. The AESL differential math the paper uses (Theorem 1 candidate enumeration,
+the MITM key equation) is no longer library-only: a **differential-step panel**
+runs it in the browser and *measures* it. Press it and the page plants a state
+pair differing by α, reads the real output difference β = AESL(x) ⊕ AESL(x ⊕ α),
+solves each active S-box from the AES difference distribution table, and reports
+the collapse it produced — 2^32 possibilities over the four active bytes knowing
+α alone, typically 2^4–2^8 knowing β too, a measured ~2^24–2^28 cut — then runs
+the Theorem 1 enumeration, prints how many candidate pairs it actually checked,
+and verifies the state it returns both reproduces β and equals the planted one.
+The DDT census beside it is counted on load, not quoted: 65,280 solutions over
+65,280 difference pairs, i.e. exactly one surviving input per active S-box on
+average, with just over half the pairs impossible outright. What remains
+annotated rather than executed is *chaining* that step across the full 2048-bit
+state, which is where 2^209 comes from — and the panel says so on the page.
+No backends, no mocks, no recordings.
 
 The recovery is shown as what it actually is — an **algebraic equation check**,
 not a brute-force count. The captured keystream `A(S0 ⊕ S2)` is treated as a
@@ -90,13 +101,15 @@ The demo implements real AESL (one AES round with a zero round key) and a struct
   cannot expose a decryption oracle to adversaries, you are in the standard model
   and HiAE's 256-bit claim holds.
 - **Toy scale vs full scale:** The live recovery brute-forces a *disclosed
-  2^16 toy keyspace* against real oracle output — this is what makes an
+  2^16 toy keyspace* against real oracle output (the differential-step panel is
+  the paper's own technique, but at one-AESL-call scale) — this is what makes an
   end-to-end, honestly-verified key recovery browser-runnable. It is not the
   full algebraic attack: recovering a full random 256-bit key is 2^130 data /
   2^209 time (ePrint 2025/1203) and is annotated, never executed. The paper's
   AESL differential machinery (Theorem 1 enumeration, the MITM key equation)
-  is implemented and unit-tested, but the reduced keyspace — not that machinery
-  — is what the in-browser recovery drives.
+  is implemented, unit-tested, and now runnable in-browser one step at a time —
+  but the reduced keyspace, not that machinery, is what the end-to-end key
+  recovery drives.
 - **The concurrent paper:** Bille & Tischhauser (ePrint 2025/1180) independently
   reached the same conclusions simultaneously. This is not a solo discovery —
   it reflects a known gap in this family of AEADs.

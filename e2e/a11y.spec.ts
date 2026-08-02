@@ -73,6 +73,10 @@ async function scanAllScenarios(page: Page): Promise<void> {
  * contrast-gates the new coloured cues in BOTH themes.
  */
 async function scanAfterAttack(page: Page): Promise<void> {
+  // The differential-step panel renders its table, stat tiles and check lines
+  // only after it runs, so drive it before scanning.
+  await page.locator('#run-diffstep').click();
+  await expect(page.locator('#ds-verdict')).toBeVisible({ timeout: 15000 });
   await page.locator('#oc-run').click();
   await expect(page.locator('#oc-ext-verdict')).toContainText('ACCEPTED', { timeout: 15000 });
   await page.locator('#generate-instance').click();
