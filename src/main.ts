@@ -1063,7 +1063,19 @@ const ocRunBtnEl     = $('oc-run') as HTMLButtonElement;
  *   Extended model: the same candidates are submitted as real forgeries and
  *     the decryption oracle answers, eliminating N−1 and confirming one.
  */
-interface OcCandidate { seed: number; label: string; key: Uint8Array; isTrue: boolean; }
+interface OcCandidate {
+  seed: number;
+  label: string;
+  key: Uint8Array;
+  isTrue: boolean;
+  /**
+   * A control submission: the true key's own forgery with its tag randomised.
+   * The oracle must reject it, which is what separates "the oracle judged this
+   * submission" from "the page recognised the key" — without it, a verdict read
+   * straight off the ground-truth flag would print exactly the same page.
+   */
+  corruptTag?: boolean;
+}
 
 let ocCandidates: OcCandidate[] | null = null;
 let ocCiphertext: Uint8Array | null = null;
@@ -1164,27 +1176,50 @@ ocRunBtnEl.addEventListener('click', async () => {
     ocExtVerdictEl.className = 'oc-verdict oc-pending';
     if (!prefersReducedMotion) await sleep(400);
 
-    let eliminated = 0;
-    let confirmed: string | null = null;
-    const rows = ocCandidates!.map((c) => {
+    const trueEntry = ocCandidates!.find((c) => c.isTrue)!;
+    // The control rides in the same list and through the same code path, so it
+    // is judged by whatever judges the candidates.
+    const submissions: OcCandidate[] = [
+      ...ocCandidates!,
+      { ...trueEntry, label: trueEntry.label + ' (tag corrupted)', corruptTag: true },
+    ];
+
+    // Submit everything first, then read every number below off this one array,
+    // so no line of the verdict can drift from what the oracle actually said.
+    const results = submissions.map((c) => {
       // A real forgery from each candidate, judged by the real decryption
       // oracle keyed with the true key. A wrong candidate produces a tag the
       // oracle rejects; the right one produces a tag it accepts.
       const msg = new TextEncoder().encode('oracle-confirm');
       const forged = encryptToyHiAE(c.key, nonce, msg, ad);
-      const verdict = decryptOracle(trueKey, nonce, forged.ciphertext, ad, forged.tag);
-      if (verdict.valid) confirmed = c.label;
-      else eliminated++;
-      return {
-        text: c.label + (verdict.valid ? ' \u2713 ACCEPTED \u2014 confirmed' : ' \u2717 rejected \u2014 eliminated'),
-        cls: verdict.valid ? 'oc-item-accept' : 'oc-item-reject',
-      };
+      const tag = new Uint8Array(forged.tag);
+      if (c.corruptTag) tag[0] ^= 0xff;
+      const verdict = decryptOracle(trueKey, nonce, forged.ciphertext, ad, tag);
+      return { c, valid: verdict.valid };
     });
-    renderOcList($('oc-ext-list'), rows);
+
+    const accepted = results.filter((r) => r.valid);
+    const eliminated = results.filter((r) => !r.valid && !r.c.corruptTag).length;
+    const controlRejected = results.some((r) => r.c.corruptTag && !r.valid);
+
+    renderOcList(
+      $('oc-ext-list'),
+      results.map((r) => ({
+        text:
+          r.c.label +
+          (r.valid ? ' \u2713 ACCEPTED \u2014 confirmed' : ' \u2717 rejected \u2014 eliminated') +
+          (r.c.corruptTag ? ' (control: right key, wrong tag)' : ''),
+        cls: r.valid ? 'oc-item-accept' : 'oc-item-reject',
+      })),
+    );
+
     ocExtVerdictEl.textContent =
-      eliminated + ' of ' + ocCandidates!.length + ' eliminated' +
-      (confirmed ? '; ' + confirmed + ' ACCEPTED' : '; none accepted');
-    ocExtVerdictEl.className = 'oc-verdict ' + (confirmed ? 'oc-accept' : 'oc-reject');
+      eliminated + ' of ' + ocCandidates!.length + ' eliminated; ' +
+      accepted.length + ' submission' + (accepted.length === 1 ? '' : 's') + ' ACCEPTED' +
+      (accepted.length ? ' (' + accepted.map((r) => r.c.label).join(', ') + ')' : '') +
+      '; control with a corrupted tag ' +
+      (controlRejected ? 'rejected' : 'ACCEPTED \u2014 the oracle is not authenticating');
+    ocExtVerdictEl.className = 'oc-verdict ' + (accepted.length ? 'oc-accept' : 'oc-reject');
   } finally {
     ocRunBtnEl.disabled = false;
   }

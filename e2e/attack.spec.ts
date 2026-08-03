@@ -175,14 +175,24 @@ test('the standard-model side eliminates nothing, and it is a count rather than 
   // candidates, two worlds", and both columns print the list so it is checkable.
   const stdLabels = (await page.locator('#oc-std-guess').innerText()).trim();
   await page.locator('#oc-run').click();
-  await expect(page.locator('#oc-ext-list .oc-item')).toHaveCount(5, { timeout: RUN_TIMEOUT });
+  // Five candidates plus one control submission.
+  await expect(page.locator('#oc-ext-list .oc-item')).toHaveCount(6, { timeout: RUN_TIMEOUT });
   expect((await page.locator('#oc-ext-guess').innerText()).trim()).toBe(stdLabels);
 
-  // Four eliminated, one confirmed — by the real oracle, not by a label.
+  // Four eliminated, one confirmed — by the real oracle, not by a label. The
+  // control proves that: it carries the *correct* key with a corrupted tag, so
+  // anything reading the answer off the candidate rather than off the oracle's
+  // reply would accept two submissions here instead of one.
   await expect(page.locator('#oc-ext-verdict')).toContainText('4 of 5 eliminated');
-  await expect(page.locator('#oc-ext-verdict')).toContainText('ACCEPTED');
+  await expect(page.locator('#oc-ext-verdict')).toContainText('1 submission ACCEPTED');
+  await expect(page.locator('#oc-ext-verdict')).toContainText('control with a corrupted tag rejected');
+  await expect(page.locator('#oc-ext-verdict')).not.toContainText('not authenticating');
   await expect(page.locator('#oc-ext-list .oc-item-accept')).toHaveCount(1);
-  await expect(page.locator('#oc-ext-list .oc-item-reject')).toHaveCount(4);
+  await expect(page.locator('#oc-ext-list .oc-item-reject')).toHaveCount(5);
+  const control = page.locator('#oc-ext-list .oc-item', { hasText: 'tag corrupted' });
+  await expect(control).toHaveCount(1);
+  await expect(control).toHaveClass(/oc-item-reject/);
+  await expect(control).toContainText('right key, wrong tag');
 
   // The accepted candidate is one of the candidates that the left side could
   // not rule out: the oracle is what turned an unusable list into an answer.
