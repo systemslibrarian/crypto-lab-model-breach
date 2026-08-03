@@ -522,6 +522,74 @@ html[data-theme='light'] .magbar-attack { background-color: rgba(185,35,23,0.2);
 .oc-btn { margin-top: 0.55rem; }
 .oc-caption { margin: 0.7rem 0 0; }
 
+/* Per-candidate results under each side of the bridge. Colour is never the only
+   cue: every row also carries the words "eliminated" / "confirmed" /
+   "cannot be excluded" (SC 1.4.1). */
+.oc-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.oc-item {
+  font: 400 0.72rem var(--font-mono);
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.3rem;
+  border: 1px solid var(--line);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.oc-item-unknown { color: var(--muted); }
+.oc-item-accept { color: var(--ok); border-color: var(--ok); }
+.oc-item-reject { color: var(--danger); border-color: var(--danger); }
+
+/* --- Attack controls: disclosed keyspace + chosen seed --- */
+.attack-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1rem;
+  margin: 0.9rem 0 0.4rem;
+}
+.ac-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.ac-field label { font-size: 0.74rem; color: var(--muted); }
+.attack-controls select,
+.attack-controls input[type="text"] {
+  font: 400 0.8rem var(--font-mono);
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--line-strong, var(--line));
+  background-color: var(--surface, transparent);
+  color: var(--text);
+}
+.ac-hint { flex: 1 1 18rem; margin: 0; }
+
+.oracle-state { margin: 0.35rem 0 0; }
+.oracle-open { color: var(--danger); }
+.oracle-shut { color: var(--ok); }
+
+/* --- Measured run history --- */
+.run-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7rem 0 0;
+  font: 400 0.74rem var(--font-mono);
+}
+.run-table caption {
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.74rem;
+  padding-bottom: 0.3rem;
+}
+.run-table th,
+.run-table td {
+  border: 1px solid var(--line);
+  padding: 0.28rem 0.45rem;
+  text-align: left;
+}
+.run-table th { color: var(--muted); font-weight: 700; }
+
 /* ------------------------------------------------------------------ */
 /* Leak micro-explainer (Panel C) — always-visible concrete leak        */
 /* ------------------------------------------------------------------ */

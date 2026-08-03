@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { runModelBreachAttack, evaluateKeyEquation, evaluateByteEquation } from './attack';
 import { decryptOracle, encryptToyHiAE } from './hiae';
-import { deriveToyKey, TOY_AD, TOY_NONCE, TOY_SEED_SPACE } from './toykey';
+import {
+  deriveToyKey,
+  SEARCH_WIDTHS,
+  seedSpaceFor,
+  TOY_AD,
+  TOY_NONCE,
+  TOY_SEED_SPACE,
+} from './toykey';
 import { aesl, aeslInv } from './aesl';
 import { xorBytes } from './bytes';
 
@@ -87,6 +94,89 @@ describe('End-to-end toy key recovery is genuinely computed from oracle output',
     };
     await expect(runModelBreachAttack(enc, dec, () => {}, ctx)).rejects.toThrow();
   }, 20000);
+});
+
+describe('The disclosed keyspace and the oracle contract are real parameters', () => {
+  const ctx = {
+    nonce: TOY_NONCE,
+    ad: TOY_AD,
+    encryptLocal: (k: Uint8Array, n: Uint8Array, pt: Uint8Array, ad: Uint8Array) =>
+      encryptToyHiAE(k, n, pt, ad),
+  };
+
+  it('searches only the keyspace it was given, and reports what that cost', async () => {
+    const { enc, dec } = blackBoxOracles(5);
+    const out = await runModelBreachAttack(enc, dec, () => {}, { ...ctx, seedSpace: 256 });
+    expect(out.recoveredSeed).toBe(5);
+    expect(out.seedSpace).toBe(256);
+    // The search starts at 0 and stops at the first key satisfying the leak
+    // equation, so a seed the caller placed at 5 costs exactly six candidates.
+    expect(out.candidatesTested).toBe(6);
+  }, 20000);
+
+  it('costs more for a seed placed further into the same space', async () => {
+    const near = await runModelBreachAttack(
+      blackBoxOracles(3).enc, blackBoxOracles(3).dec, () => {}, { ...ctx, seedSpace: 256 },
+    );
+    const far = await runModelBreachAttack(
+      blackBoxOracles(200).enc, blackBoxOracles(200).dec, () => {}, { ...ctx, seedSpace: 256 },
+    );
+    expect(near.candidatesTested).toBe(4);
+    expect(far.candidatesTested).toBe(201);
+    expect(far.candidatesTested).toBeGreaterThan(near.candidatesTested);
+  }, 20000);
+
+  it('cannot find a seed that lies outside the keyspace it was told to search', async () => {
+    const { enc, dec } = blackBoxOracles(300);
+    // 300 is outside 2^8, so an honest search of that space must exhaust and
+    // throw rather than report a key it never verified.
+    await expect(
+      runModelBreachAttack(enc, dec, () => {}, { ...ctx, seedSpace: 256 }),
+    ).rejects.toThrow(/exhausted/);
+  }, 20000);
+
+  it('clamps a keyspace wider than the KDF domain instead of testing dead keys', async () => {
+    const { enc, dec } = blackBoxOracles(1);
+    const out = await runModelBreachAttack(enc, dec, () => {}, {
+      ...ctx,
+      seedSpace: TOY_SEED_SPACE * 8,
+    });
+    expect(out.seedSpace).toBe(TOY_SEED_SPACE);
+  }, 20000);
+
+  it('recovers but cannot confirm when the deployment exposes no decryption oracle', async () => {
+    const { key, enc } = blackBoxOracles(7);
+    const out = await runModelBreachAttack(enc, null, () => {}, { ...ctx, seedSpace: 256 });
+
+    // The key still falls out of the keystream leak — that is an encryption
+    // oracle property and does not depend on the threat model.
+    expect(eq(out.recoveredKey, key)).toBe(true);
+    // But nothing confirmed it, and the result says so rather than claiming a
+    // forgery that was never submitted anywhere.
+    expect(out.oracleAvailable).toBe(false);
+    expect(out.forgeConfirmed).toBe(false);
+    const forge = out.steps.find((s) => s.phase === 'forge');
+    expect(forge?.description).toMatch(/no decryption oracle/);
+    expect(out.steps.some((s) => /ACCEPTED/.test(s.description))).toBe(false);
+  }, 20000);
+
+  it('reports a confirmed forgery only when an oracle actually answered', async () => {
+    const { enc, dec } = blackBoxOracles(9);
+    const out = await runModelBreachAttack(enc, dec, () => {}, { ...ctx, seedSpace: 256 });
+    expect(out.oracleAvailable).toBe(true);
+    expect(out.forgeConfirmed).toBe(true);
+    expect(out.steps.some((s) => /ACCEPTED/.test(s.description))).toBe(true);
+  }, 20000);
+});
+
+describe('seedSpaceFor', () => {
+  it('maps a width to its keyspace and clamps to the KDF domain', () => {
+    expect(seedSpaceFor(8)).toBe(256);
+    expect(seedSpaceFor(16)).toBe(TOY_SEED_SPACE);
+    expect(seedSpaceFor(99)).toBe(TOY_SEED_SPACE);
+    expect(seedSpaceFor(0)).toBe(2);
+    expect(SEARCH_WIDTHS.every((b) => seedSpaceFor(b) <= TOY_SEED_SPACE)).toBe(true);
+  });
 });
 
 describe('MITM key equation and byte equation (paper Section 4.1–4.2 math)', () => {

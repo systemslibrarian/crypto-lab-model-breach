@@ -28,10 +28,16 @@ key-recovery attack that is **genuinely computed from oracle output**:
 1. **Observe** — one encryption-oracle query leaks the keystream block
    `AESL(S0 ⊕ S2)` of the target's post-init state (`ct ⊕ pt`).
 2. **Guess-and-determine** — the attack searches an *honestly disclosed reduced
-   toy keyspace* (a public function of a 16-bit seed) for the one key whose
-   derived keystream reproduces what was observed.
-3. **Forge** — it builds a ciphertext+tag with the recovered key and confirms
-   the **decryption oracle accepts it** (and rejects a random-tag forgery).
+   toy keyspace* (a public function of a seed, up to 16 bits) for the one key
+   whose derived keystream reproduces what was observed. The width of that
+   keyspace and the seed itself are both the learner's to set, and every run
+   records what it cost — candidates tested and search time — in a table.
+3. **Forge** — it builds a ciphertext+tag with the recovered key and, *if the
+   selected deployment exposes a decryption oracle*, confirms the **oracle
+   accepts it** (and rejects a random-tag forgery). Under Scenario A or C the
+   attack is handed no oracle at all, so this phase is blocked and the run ends
+   with a key that is recovered and unconfirmable — the standard model enforced
+   rather than described.
 
 The recovered key is checked byte-for-byte against the instance and is never
 read from oracle metadata. **The reduced keyspace is the toy** — recovering a
@@ -70,12 +76,17 @@ An always-visible **"what is a keystream leak?"** micro-explainer encrypts a blo
 of zeros live and shows three byte rows — zero plaintext, ciphertext, and the
 derived keystream — so the learner *sees* that `ct` of zeros literally **is** the
 keystream block `A(S0 ⊕ S2)`, and why a single query leaks a testable constraint.
-A **method-honesty callout** states plainly that the browser's exhaustive 2^16 seed
-search and the paper's 2^209 meet-in-the-middle differential attack are *different
-techniques* — not one method at two sizes — so nobody leaves thinking the real
-attack is just this search scaled up. The oracle bridge is interactive on **both**
-sides: pressing the standard-model button spins and dead-ends ("unresolvable — no
-oracle to ask"), letting the learner feel the asymmetry by trying it. The state
+Once an instance exists those rows show *its* leak — the exact block phase 1
+captures — rather than an unrelated fixed key. A **method-honesty callout** states
+plainly that the browser's exhaustive seed search and the paper's 2^209
+meet-in-the-middle differential attack are *different techniques* — not one method
+at two sizes — so nobody leaves thinking the real attack is just this search scaled
+up. The oracle bridge runs a real computation on **both** sides of the same
+candidate list: the standard-model side computes, for each candidate key, the
+plaintext that key implies for the intercepted ciphertext, and finds every one of
+them consistent — 0 of 5 eliminated, a counted dead end rather than a spinner —
+while the extended-model side submits the same candidates as forgeries and the
+oracle eliminates four and confirms one. The state
 grid narrates itself with a per-cell caption tying each highlighted block back to
 the leak, and the threat-model gap is drawn as **log-scale magnitude bars**
 (2^256 vs 2^209, ≈ 2^47 easier) instead of a decorative gradient.
@@ -101,7 +112,7 @@ The demo implements real AESL (one AES round with a zero round key) and a struct
   cannot expose a decryption oracle to adversaries, you are in the standard model
   and HiAE's 256-bit claim holds.
 - **Toy scale vs full scale:** The live recovery brute-forces a *disclosed
-  2^16 toy keyspace* against real oracle output (the differential-step panel is
+  toy keyspace of the learner's chosen width, up to 2^16,* against real oracle output (the differential-step panel is
   the paper's own technique, but at one-AESL-call scale) — this is what makes an
   end-to-end, honestly-verified key recovery browser-runnable. It is not the
   full algebraic attack: recovering a full random 256-bit key is 2^130 data /

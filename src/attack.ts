@@ -129,15 +129,39 @@ function firstKeystreamBlock(
 
 export async function runModelBreachAttack(
   encOracle: (pt: Uint8Array) => Promise<{ ct: Uint8Array; tag: Uint8Array }>,
-  decOracle: (ct: Uint8Array, tag: Uint8Array) => Promise<{ valid: boolean; pt: Uint8Array | null }>,
+  /**
+   * The decryption oracle, or `null` when the deployment does not expose one.
+   *
+   * `null` is not a disabled button: there is no oracle object to call, so
+   * phase 3 cannot run at all and the function returns with `forgeConfirmed`
+   * false. That is the standard model enforced rather than described — the
+   * scenario tabs used to be prose beside an attack that ran identically
+   * whichever one was selected.
+   */
+  decOracle: ((ct: Uint8Array, tag: Uint8Array) => Promise<{ valid: boolean; pt: Uint8Array | null }>) | null,
   onProgress: (p: AttackProgress) => void,
   ctx: {
     nonce: Uint8Array;
     ad: Uint8Array;
     encryptLocal: (k: Uint8Array, n: Uint8Array, pt: Uint8Array, ad: Uint8Array) => { ciphertext: Uint8Array; tag: Uint8Array };
+    /** Disclosed keyspace to search. Defaults to the full 2^16 toy space. */
+    seedSpace?: number;
   },
-): Promise<{ recoveredKey: Uint8Array; recoveredSeed: number; steps: AttackStep[] }> {
+): Promise<{
+  recoveredKey: Uint8Array;
+  recoveredSeed: number;
+  steps: AttackStep[];
+  /** Keys actually tested before the leak equation was satisfied. */
+  candidatesTested: number;
+  /** Size of the keyspace this run searched. */
+  seedSpace: number;
+  /** Did a decryption oracle confirm the recovered key? False when none exists. */
+  forgeConfirmed: boolean;
+  /** Was a decryption oracle available at all in this deployment? */
+  oracleAvailable: boolean;
+}> {
   const steps: AttackStep[] = [];
+  const seedSpace = Math.min(Math.max(Math.trunc(ctx.seedSpace ?? TOY_SEED_SPACE), 1), TOY_SEED_SPACE);
   const encryptCt = (k: Uint8Array, n: Uint8Array, pt: Uint8Array, ad: Uint8Array) =>
     ctx.encryptLocal(k, n, pt, ad).ciphertext;
 
@@ -151,13 +175,13 @@ export async function runModelBreachAttack(
 
   onProgress({
     phase: 'observe', step: 'capture', pct: 8,
-    candidateCount: TOY_SEED_SPACE,
+    candidateCount: seedSpace,
     complexityNote: 'Toy: 1 query | Full: 2^130 data',
   });
   steps.push({
     phase: 'observe',
     description: 'Encryption oracle queried once; keystream block AESL(S0⊕S2) captured (ct⊕pt).',
-    candidatesBefore: TOY_SEED_SPACE, candidatesAfter: TOY_SEED_SPACE,
+    candidatesBefore: seedSpace, candidatesAfter: seedSpace,
     toyComplexity: 'Toy: 1 encryption query', fullComplexity: 'Full: 2^130 data',
     elapsedMs: elapsed(t1),
   });
@@ -172,10 +196,10 @@ export async function runModelBreachAttack(
   let tested = 0;
 
   // Progress checkpoints so the log shows genuine narrowing, not a script.
-  const checkpoints = [0.25, 0.5, 0.75, 1.0].map((f) => Math.floor(TOY_SEED_SPACE * f));
+  const checkpoints = [0.25, 0.5, 0.75, 1.0].map((f) => Math.floor(seedSpace * f));
   let nextCp = 0;
 
-  for (let seed = 0; seed < TOY_SEED_SPACE; seed++) {
+  for (let seed = 0; seed < seedSpace; seed++) {
     tested++;
     const candKey = deriveToyKey(seed);
     const candKeystream = firstKeystreamBlock(candKey, ctx.nonce, ctx.ad, encryptCt);
@@ -188,8 +212,8 @@ export async function runModelBreachAttack(
       onProgress({
         phase: 'guess-determine', step: 'scan-' + nextCp,
         pct: 15 + nextCp * 15,
-        candidateCount: TOY_SEED_SPACE - tested,
-        complexityNote: 'Toy: <=2^' + Math.log2(TOY_SEED_SPACE).toFixed(0) + ' | Full: 2^209',
+        candidateCount: seedSpace - tested,
+        complexityNote: 'Toy: <=2^' + Math.log2(seedSpace).toFixed(0) + ' | Full: 2^209',
       });
       nextCp++;
     }
@@ -207,9 +231,9 @@ export async function runModelBreachAttack(
     phase: 'guess-determine',
     description: 'Seed 0x' + recoveredSeed.toString(16).padStart(4, '0') +
       ' is the unique candidate whose derived key reproduces the observed keystream (' +
-      tested + ' of ' + TOY_SEED_SPACE + ' tested).',
-    candidatesBefore: TOY_SEED_SPACE, candidatesAfter: 1,
-    toyComplexity: 'Toy: <=2^' + Math.log2(TOY_SEED_SPACE).toFixed(0) + ' keys',
+      tested + ' of ' + seedSpace + ' tested).',
+    candidatesBefore: seedSpace, candidatesAfter: 1,
+    toyComplexity: 'Toy: <=2^' + Math.log2(seedSpace).toFixed(0) + ' keys',
     fullComplexity: 'Full: 2^209 time',
     elapsedMs: elapsed(t2),
   });
@@ -223,6 +247,36 @@ export async function runModelBreachAttack(
   const t3 = nowMs();
   const forgedMsg = new TextEncoder().encode('forged-by-recovered-key');
   const forged = ctx.encryptLocal(recoveredKey, ctx.nonce, forgedMsg, ctx.ad);
+
+  if (!decOracle) {
+    // No oracle exists in this deployment, so the forgery is built and then has
+    // nowhere to go. The attacker is left holding a candidate key with no way
+    // to learn whether it is the right one — which is the standard model, and
+    // the reason the paper's result is stated in the extended one.
+    onProgress({
+      phase: 'forge', step: 'no-oracle', pct: 92, candidateCount: 1,
+      complexityNote: 'No decryption oracle in this deployment',
+    });
+    steps.push({
+      phase: 'forge',
+      description: 'Forgery built with the recovered key, but this deployment exposes no decryption ' +
+        'oracle, so there is nothing to submit it to and nothing confirms the candidate.',
+      candidatesBefore: 1, candidatesAfter: 1,
+      toyComplexity: 'Toy: 0 decryption queries available',
+      fullComplexity: 'Full: standard model — no oracle',
+      elapsedMs: elapsed(t3),
+    });
+    onProgress({
+      phase: 'done', step: 'unconfirmed', pct: 100, candidateCount: 1,
+      complexityNote: 'Recovered but unconfirmable',
+    });
+    return {
+      recoveredKey, recoveredSeed, steps,
+      candidatesTested: tested, seedSpace,
+      forgeConfirmed: false, oracleAvailable: false,
+    };
+  }
+
   const dec = await decOracle(forged.ciphertext, forged.tag);
   const forgeAccepted =
     dec.valid && dec.pt !== null && equalBytes(dec.pt.subarray(0, forgedMsg.length), forgedMsg);
@@ -250,7 +304,11 @@ export async function runModelBreachAttack(
 
   onProgress({ phase: 'done', step: 'key-recovered', pct: 100, candidateCount: 1, complexityNote: 'Toy: complete | Full: 2^209' });
 
-  return { recoveredKey, recoveredSeed, steps };
+  return {
+    recoveredKey, recoveredSeed, steps,
+    candidatesTested: tested, seedSpace,
+    forgeConfirmed: true, oracleAvailable: true,
+  };
 }
 
 /* Splitting helper re-exported for callers/tests that reconstruct keystream. */

@@ -2,7 +2,15 @@ import './style.css';
 import { runModelBreachAttack, type AttackProgress } from './attack';
 import { toHex } from './bytes';
 import { decryptOracle, encryptToyHiAE } from './hiae';
-import { deriveToyKey, TOY_AD, TOY_NONCE, TOY_SEED_BITS, TOY_SEED_SPACE } from './toykey';
+import {
+  deriveToyKey,
+  SEARCH_WIDTHS,
+  seedSpaceFor,
+  TOY_AD,
+  TOY_NONCE,
+  TOY_SEED_BITS,
+  TOY_SEED_SPACE,
+} from './toykey';
 import { ddtCensus, runDifferentialStep, type DifferentialStepResult } from './differential';
 import { SBOX } from './aesl';
 
@@ -20,6 +28,8 @@ type ScenarioId = 'a' | 'b' | 'c';
 interface DemoInstance {
   seed: number;
   key: Uint8Array;
+  /** The keyspace the learner disclosed when this instance was generated. */
+  seedSpace: number;
   nonce: Uint8Array;
   ad: Uint8Array;
 }
@@ -196,26 +206,30 @@ STATUS:  Secure under these conditions \u2713</pre>
           <p class="tiny">The attacker sees ciphertext but has no way to ask "is this key right?"
             Each guess is a shot in the dark that can never be confirmed.</p>
           <div class="oc-demo">
-            <div class="oc-guess" id="oc-std-guess">candidate key: 0x????</div>
+            <div class="oc-guess" id="oc-std-guess">candidate keys: none drawn yet</div>
             <div class="oc-verdict oc-unknown" id="oc-std-verdict" role="status" aria-live="polite">— idle</div>
           </div>
-          <button id="oc-std-run" type="button" class="oc-btn">Try to check the guess</button>
+          <ul class="oc-list" id="oc-std-list"></ul>
+          <button id="oc-std-run" type="button" class="oc-btn">Try to eliminate the candidates</button>
         </div>
         <div class="oc-side oc-extended">
           <h3 class="oc-h">Extended model \u2014 decryption oracle</h3>
           <p class="tiny">The attacker submits a forgery built from each guess. A <strong>reject</strong> throws
             the candidate out; an <strong>accept</strong> confirms it. Guessing becomes searching.</p>
           <div class="oc-demo">
-            <div class="oc-guess" id="oc-ext-guess">candidate key: 0x????</div>
+            <div class="oc-guess" id="oc-ext-guess">candidate keys: none drawn yet</div>
             <div class="oc-verdict oc-pending" id="oc-ext-verdict" role="status" aria-live="polite">\u2014 idle</div>
           </div>
+          <ul class="oc-list" id="oc-ext-list"></ul>
           <button id="oc-run" type="button" class="oc-btn">Ask the oracle</button>
         </div>
       </div>
-      <p class="tiny oc-caption">Same candidate, two worlds. <strong>Press both buttons.</strong> The standard-model
-        side spins and then dead-ends \u2014 there is nothing to ask, so the guess can never resolve. The extended-model side
-        submits a real forgery and the oracle <em>confirms</em> the candidate. Feeling the left side fail is the point:
-        a decryption oracle is the one capability that turns an unverifiable guess into a checkable one.</p>
+      <p class="tiny oc-caption">The <em>same</em> candidate list, two worlds. <strong>Press both buttons.</strong>
+        The left side runs the only test a ciphertext-only attacker has \u2014 for each candidate key it computes the
+        plaintext that key implies for the intercepted ciphertext \u2014 and finds that every candidate implies
+        <em>some</em> plaintext, so not one of them can be ruled out. That is not a spinner giving up; it is the
+        predicate being vacuous, counted. The right side submits the same candidates as real forgeries and the oracle
+        answers, so all but one are eliminated. The counts under each button come from that run.</p>
     </section>
 
     <!-- ============ PANEL C ============ -->
@@ -228,6 +242,7 @@ STATUS:  Secure under these conditions \u2713</pre>
            All three rows are computed live from the toy scheme, not faked. -->
       <div class="leak-explainer">
         <h3 class="leak-h">First, what is a "keystream leak"?</h3>
+        <p class="tiny leak-source" id="leak-source"></p>
         <p class="leak-lede">A stream cipher hides a message by XOR-ing it with a secret
           <strong>keystream</strong>: <span class="mono">ciphertext = plaintext \u2295 keystream</span>.
           Watch what happens if the attacker asks the encryption oracle to encrypt a block of
@@ -328,11 +343,35 @@ STATUS:  Secure under these conditions \u2713</pre>
           not executed here and this panel does not claim it: what it claims, and measures, is the per-step collapse.</p>
       </div>
 
+      <div class="attack-controls">
+        <div class="ac-field">
+          <label for="seed-width">Disclosed keyspace</label>
+          <select id="seed-width">
+            ${SEARCH_WIDTHS.map((b) => `<option value="${b}"${b === 16 ? ' selected' : ''}>2^${b} keys</option>`).join('')}
+          </select>
+        </div>
+        <div class="ac-field">
+          <label for="seed-choice">Secret seed</label>
+          <input id="seed-choice" type="text" inputmode="numeric" placeholder="random" size="10" />
+        </div>
+        <p class="tiny ac-hint" id="seed-hint">Leave the seed blank to draw one at random, or type a decimal or
+          0x-prefixed value to place it yourself. A seed near the start of the space is found after a handful of
+          candidates and one near the end after nearly all of them; the run table below records what each run cost.</p>
+      </div>
+
       <div class="actions">
         <button id="generate-instance" type="button">Generate Instance</button>
         <button id="run-attack" type="button" disabled>Run Attack</button>
       </div>
       <p id="instance-meta" class="tiny" role="status" aria-live="polite">Oracles not initialized yet.</p>
+      <p id="oracle-state" class="tiny oracle-state" role="status" aria-live="polite"></p>
+      <table class="run-table" id="run-table" hidden>
+        <caption>Every completed run, as measured</caption>
+        <thead>
+          <tr><th scope="col">Keyspace</th><th scope="col">Seed</th><th scope="col">Candidates tested</th><th scope="col">Search time</th><th scope="col">Forgery confirmed</th></tr>
+        </thead>
+        <tbody id="run-table-body"></tbody>
+      </table>
 
       <div id="attack-log" class="attack-log" role="log"
            tabindex="0" aria-live="polite"
@@ -470,6 +509,12 @@ const kvCandidateEl   = $('kv-candidate');
 const kvStatusEl      = $('kv-status');
 const kvCandLabelEl   = $('kv-cand-label');
 const kvVizEl         = $('keystream-viz');
+const leakSourceEl    = $('leak-source');
+const oracleStateEl   = $('oracle-state');
+const seedWidthEl     = $('seed-width') as HTMLSelectElement;
+const seedChoiceEl    = $('seed-choice') as HTMLInputElement;
+const runTableEl      = $('run-table') as HTMLTableElement;
+const runTableBodyEl  = $('run-table-body');
 
 /* ------------------------------------------------------------------ */
 /* Leak micro-explainer (Panel C) — render the three concrete rows      */
@@ -486,18 +531,34 @@ function renderLeakBytes(container: HTMLElement, bytes: Uint8Array, cls = ''): v
   }
 }
 
-(function renderLeakExplainer() {
-  // Use a concrete, fixed demo key so the block is stable across reloads. This is
-  // illustrative crypto, computed live from the real toy scheme — not faked.
-  const demoKey = deriveToyKey(0x1a2b);
+/**
+ * Render the three leak rows for a specific key.
+ *
+ * These rows used to be computed from `deriveToyKey(0x1a2b)` — a fixed key with
+ * no relationship to the instance being attacked below. The bytes were real,
+ * but they were the wrong bytes: the learner was shown "the keystream the
+ * attacker observes" for a key the attacker never touches, and could compare
+ * them against the attack's own observed leak and find no correspondence at
+ * all. Once an instance exists these rows show *its* leak, which is exactly the
+ * block phase 1 captures. The seed stays secret; the keystream does not, which
+ * is the whole point of the panel.
+ */
+function renderLeakExplainer(key: Uint8Array, source: string): void {
   const zero = new Uint8Array(16);
-  const out = encryptToyHiAE(demoKey, new Uint8Array(TOY_NONCE), zero, new Uint8Array(TOY_AD));
+  const out = encryptToyHiAE(key, new Uint8Array(TOY_NONCE), zero, new Uint8Array(TOY_AD));
   const ct = out.ciphertext.subarray(0, 16);
-  const ks = keystreamBlockOf(demoKey); // == ct, since pt is all zeros
+  const ks = keystreamBlockOf(key); // == ct, since pt is all zeros
   renderLeakBytes($('leak-pt'), zero, 'leak-zero');
   renderLeakBytes($('leak-ct'), ct);
   renderLeakBytes($('leak-ks'), ks, 'leak-derived');
-})();
+  leakSourceEl.textContent = source;
+}
+
+renderLeakExplainer(
+  deriveToyKey(0x1a2b),
+  'Showing an illustrative key, because no instance has been generated yet. ' +
+    'Generate one below and these rows become that instance\u2019s own leak \u2014 the exact block the attack captures.',
+);
 
 /* ------------------------------------------------------------------ */
 /* The paper's technique, executed (Panel C)                           */
@@ -598,22 +659,41 @@ dsRunBtnEl.addEventListener('click', () => {
 /* ------------------------------------------------------------------ */
 /* Scenario tabs                                                       */
 /* ------------------------------------------------------------------ */
-const scenarios: Record<ScenarioId, { text: string; cls: string }> = {
+const scenarios: Record<ScenarioId, { text: string; cls: string; decryptionOracle: boolean }> = {
   a: {
     text: 'Scenario A: 6G base station \u2014 Attacker can observe traffic but cannot submit forgeries to the decryption pipeline. Standard model applies. HiAE is safe. \u2713',
     cls: 'ok',
+    decryptionOracle: false,
   },
   b: {
     text: 'Scenario B: Shared API endpoint \u2014 Decryption is exposed as a service. Attacker can submit forged ciphertexts. Extended model applies. HiAE security falls to 2^209. \u26A0',
     cls: 'warn',
+    decryptionOracle: true,
   },
   c: {
     text: 'Scenario C: GPU interconnect \u2014 Point-to-point hardware link. No decryption oracle exposure. Standard model applies. HiAE is safe. \u2713',
     cls: 'ok',
+    decryptionOracle: false,
   },
 };
 
+/**
+ * The selected scenario is now a contract the simulation below obeys, not a
+ * caption beside it. Under A and C the attack is handed no decryption oracle at
+ * all, so its forge phase has nothing to submit to and the run ends with an
+ * unconfirmed candidate. Previously all three tabs ran the identical attack to
+ * the identical "forgery ACCEPTED", which quietly contradicted the two tabs
+ * that said no such pipeline is exposed.
+ */
+let activeScenario: ScenarioId = 'a';
+
+function oracleExposed(): boolean {
+  return scenarios[activeScenario].decryptionOracle;
+}
+
 function setScenario(id: ScenarioId): void {
+  const changed = id !== activeScenario;
+  activeScenario = id;
   document.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach(tab => {
     const active = tab.dataset.scenario === id;
     tab.setAttribute('aria-selected', String(active));
@@ -623,8 +703,15 @@ function setScenario(id: ScenarioId): void {
   scenarioPanelEl.textContent = scenarios[id].text;
   scenarioPanelEl.className = 'scenario-card ' + scenarios[id].cls;
   scenarioPanelEl.setAttribute('aria-labelledby', 'tab-' + id);
+  paintOracleState();
+  // A finished run describes the deployment it ran against. Switching
+  // deployments retires it rather than leaving a "forgery ACCEPTED" log under a
+  // tab that says no forgeries can be submitted.
+  if (changed) retireAttackRun();
 }
 
+// Scenario A is the default view, and now also the default *contract*: no
+// decryption oracle until the learner selects the deployment that has one.
 setScenario('a');
 
 document.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach(tab => {
@@ -740,6 +827,77 @@ function animateUpdatePath(): void {
 /* ------------------------------------------------------------------ */
 let instance: DemoInstance | null = null;
 
+/**
+ * Say, next to the buttons, whether this deployment exposes a decryption
+ * oracle — the single fact that decides whether phase 3 can run at all.
+ */
+function paintOracleState(): void {
+  const exposed = oracleExposed();
+  oracleStateEl.textContent = exposed
+    ? 'Scenario ' + activeScenario.toUpperCase() + ' exposes a decryption oracle, so a recovered key can be ' +
+      'confirmed by forging against it. The extended model applies.'
+    : 'Scenario ' + activeScenario.toUpperCase() + ' exposes no decryption oracle. The attack below is handed ' +
+      'none, so its forge phase will have nothing to submit to and the recovered candidate stays unconfirmed. ' +
+      'Switch to Scenario B to give the attacker one.';
+  oracleStateEl.className = 'tiny oracle-state ' + (exposed ? 'oracle-open' : 'oracle-shut');
+}
+
+/**
+ * Drop everything a finished run produced. Called when the deployment or the
+ * instance changes underneath it, so no log, forge card or equation grid
+ * outlives the conditions it was computed under.
+ */
+function retireAttackRun(): void {
+  attackLogEl.innerHTML = '';
+  disclaimerEl.classList.add('hidden');
+  forgeResultEl.classList.add('hidden');
+  kvVizEl.setAttribute('aria-hidden', 'true');
+  kvObservedEl.textContent = '';
+  kvCandidateEl.textContent = '';
+  kvCandLabelEl.textContent = 'Candidate re-derives';
+  kvStatusEl.className = 'kv-status';
+}
+
+/** Append one measured row to the run table. Nothing here is a constant. */
+function recordRun(row: {
+  seedSpace: number;
+  seed: number;
+  tested: number;
+  ms: number;
+  confirmed: boolean;
+  oracleAvailable: boolean;
+}): void {
+  const tr = document.createElement('tr');
+  const cells = [
+    '2^' + Math.log2(row.seedSpace).toFixed(0),
+    '0x' + row.seed.toString(16).padStart(4, '0'),
+    row.tested.toLocaleString('en-US') + ' of ' + row.seedSpace.toLocaleString('en-US'),
+    row.ms + ' ms',
+    row.oracleAvailable ? (row.confirmed ? 'yes' : 'no') : 'no oracle to ask',
+  ];
+  for (const value of cells) {
+    const td = document.createElement('td');
+    td.textContent = value;
+    tr.appendChild(td);
+  }
+  runTableBodyEl.appendChild(tr);
+  runTableEl.hidden = false;
+}
+
+/** Read the learner's seed box: blank means draw at random. */
+function chooseSeed(seedSpace: number): number {
+  const raw = seedChoiceEl.value.trim();
+  if (raw !== '') {
+    const parsed = /^0[xX][0-9a-fA-F]+$/.test(raw) ? Number.parseInt(raw.slice(2), 16) : Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.trunc(parsed) % seedSpace;
+    }
+  }
+  const bytes = new Uint8Array(2);
+  crypto.getRandomValues(bytes);
+  return ((bytes[0] | (bytes[1] << 8)) >>> 0) % seedSpace;
+}
+
 function appendLog(line: string, cssClass = ''): void {
   const p = document.createElement('p');
   p.textContent = line;
@@ -803,6 +961,7 @@ const sleep = (ms: number) => new Promise<void>(r => window.setTimeout(r, ms));
 async function animateEquationCheck(
   observed: Uint8Array,
   correctSeed: number,
+  seedSpace: number,
 ): Promise<void> {
   kvVizEl.setAttribute('aria-hidden', 'false');
   const obsCells = renderByteRow(kvObservedEl, observed);
@@ -814,7 +973,10 @@ async function animateEquationCheck(
   // rejecting wrong keys byte-by-byte.
   const decoys: number[] = [];
   for (let d = 1; d <= 3; d++) {
-    const s = (correctSeed + d * 9973) & (TOY_SEED_SPACE - 1);
+    // Decoys must come from the keyspace the attacker was told to search;
+    // showing a rejected candidate from outside it would be a candidate the
+    // attack never considered.
+    const s = (correctSeed + d * 9973) % seedSpace;
     if (s !== correctSeed) decoys.push(s);
   }
 
@@ -880,85 +1042,183 @@ const ocExtGuessEl   = $('oc-ext-guess');
 const ocExtVerdictEl = $('oc-ext-verdict');
 const ocRunBtnEl     = $('oc-run') as HTMLButtonElement;
 
-// Standard-model side: let the learner TRY to check the guess and feel it dead-end.
-// It spins, then resolves to "unresolvable" — there is no oracle to ask, so no
-// candidate can ever be confirmed. Felt asymmetry, not asserted asymmetry.
-ocStdRunBtnEl.addEventListener('click', async () => {
+/**
+ * One candidate list, evaluated by both worlds.
+ *
+ * Both sides used to invent their own random seed, and the standard-model side
+ * did nothing with its one: it spun for 900ms and printed a fixed
+ * "? unresolvable — no oracle to ask". That is the conclusion asserted, which
+ * is the one thing this panel exists to avoid, and it also meant the two
+ * columns were never comparing the same candidate.
+ *
+ * Now a single list is drawn — one entry of which is the true key — and each
+ * side runs the check that world genuinely permits:
+ *
+ *   Standard model: the attacker holds a ciphertext of an unknown plaintext.
+ *     For each candidate it computes the plaintext that candidate implies,
+ *     p_k = ct ⊕ keystream(k). Every candidate yields *a* plaintext, so no
+ *     candidate can be excluded. The dead end is a counted result — 0 of N
+ *     eliminated — not a spinner.
+ *
+ *   Extended model: the same candidates are submitted as real forgeries and
+ *     the decryption oracle answers, eliminating N−1 and confirming one.
+ */
+interface OcCandidate { seed: number; label: string; key: Uint8Array; isTrue: boolean; }
+
+let ocCandidates: OcCandidate[] | null = null;
+let ocCiphertext: Uint8Array | null = null;
+
+const OC_SECRET = new TextEncoder().encode('meet me at midnight');
+
+function drawOcCandidates(): void {
+  const bytes = new Uint8Array(2 * 6);
+  crypto.getRandomValues(bytes);
+  const seeds: number[] = [];
+  for (let i = 0; i < 5; i++) {
+    seeds.push(((bytes[2 * i] | (bytes[2 * i + 1] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0);
+  }
+  const trueSeed = ((bytes[10] | (bytes[11] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0;
+  const all = seeds.filter((s) => s !== trueSeed).slice(0, 4);
+  // Put the real key at a random position so the list order gives nothing away.
+  const insertAt = Math.floor(Math.random() * (all.length + 1));
+  all.splice(insertAt, 0, trueSeed);
+
+  ocCandidates = all.map((seed) => ({
+    seed,
+    label: '0x' + seed.toString(16).padStart(4, '0'),
+    key: deriveToyKey(seed),
+    isTrue: seed === trueSeed,
+  }));
+
+  // The intercepted ciphertext: the true key encrypting a message the attacker
+  // does not know. This is all a ciphertext-only attacker ever sees.
+  const trueKey = deriveToyKey(trueSeed);
+  ocCiphertext = encryptToyHiAE(trueKey, new Uint8Array(TOY_NONCE), OC_SECRET, new Uint8Array(TOY_AD))
+    .ciphertext;
+
+  const labels = ocCandidates.map((c) => c.label).join(', ');
+  ocStdGuessEl.textContent = 'candidate keys: ' + labels;
+  ocExtGuessEl.textContent = 'candidate keys: ' + labels;
+}
+
+function ensureOcCandidates(): void {
+  if (!ocCandidates || !ocCiphertext) drawOcCandidates();
+}
+
+function renderOcList(target: HTMLElement, rows: { text: string; cls: string }[]): void {
+  target.textContent = '';
+  for (const row of rows) {
+    const li = document.createElement('li');
+    li.className = 'oc-item ' + row.cls;
+    li.textContent = row.text;
+    target.appendChild(li);
+  }
+}
+
+function printableRatio(bytes: Uint8Array): number {
+  let n = 0;
+  for (const b of bytes) if (b === 0x0a || (b >= 0x20 && b < 0x7f)) n++;
+  return n / bytes.length;
+}
+
+ocStdRunBtnEl.addEventListener('click', () => {
   ocStdRunBtnEl.disabled = true;
-  const seedBytes = new Uint8Array(2);
-  crypto.getRandomValues(seedBytes);
-  const seed = ((seedBytes[0] | (seedBytes[1] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0;
-  const label = '0x' + seed.toString(16).padStart(4, '0');
-  ocStdGuessEl.textContent = 'candidate key: ' + label;
-  ocStdVerdictEl.textContent = '… looking for something to ask';
-  ocStdVerdictEl.className = 'oc-verdict oc-pending';
-  if (!prefersReducedMotion) await sleep(900);
-  ocStdVerdictEl.textContent = '? unresolvable — no oracle to ask';
-  ocStdVerdictEl.className = 'oc-verdict oc-unknown';
-  ocStdRunBtnEl.disabled = false;
+  try {
+    ensureOcCandidates();
+    const ct = ocCiphertext!.subarray(0, 16);
+    let eliminated = 0;
+    const rows = ocCandidates!.map((c) => {
+      // The only computation available without an oracle: what plaintext would
+      // this key imply for the ciphertext we intercepted?
+      const ks = keystreamBlockOf(c.key);
+      const implied = new Uint8Array(16);
+      for (let i = 0; i < 16; i++) implied[i] = ct[i] ^ ks[i];
+      // Nothing rules it out: the plaintext was never known, so any byte string
+      // is a legal explanation. Count the eliminations honestly — there are none.
+      const looksText = printableRatio(implied) > 0.9;
+      return {
+        text:
+          c.label + ' implies plaintext ' + toHex(implied).slice(0, 16) + '\u2026' +
+          (looksText ? ' (printable)' : '') + ' \u2014 consistent, cannot be excluded',
+        cls: 'oc-item-unknown',
+      };
+    });
+    renderOcList($('oc-std-list'), rows);
+    ocStdVerdictEl.textContent =
+      eliminated + ' of ' + ocCandidates!.length + ' candidates eliminated \u2014 the predicate is vacuous';
+    ocStdVerdictEl.className = 'oc-verdict oc-unknown';
+  } finally {
+    ocStdRunBtnEl.disabled = false;
+  }
 });
 
 ocRunBtnEl.addEventListener('click', async () => {
   ocRunBtnEl.disabled = true;
-  // Pick a real seed, derive its key, and build a genuine forgery from it.
-  const seedBytes = new Uint8Array(2);
-  crypto.getRandomValues(seedBytes);
-  const seed = ((seedBytes[0] | (seedBytes[1] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0;
-  const label = '0x' + seed.toString(16).padStart(4, '0');
-  const key = deriveToyKey(seed);
-  const nonce = new Uint8Array(TOY_NONCE);
-  const ad = new Uint8Array(TOY_AD);
+  try {
+    ensureOcCandidates();
+    const nonce = new Uint8Array(TOY_NONCE);
+    const ad = new Uint8Array(TOY_AD);
+    const trueKey = ocCandidates!.find((c) => c.isTrue)!.key;
 
-  ocStdGuessEl.textContent = 'candidate key: ' + label;
-  ocExtGuessEl.textContent = 'candidate key: ' + label;
-  ocStdVerdictEl.textContent = '? still no way to check';
-  ocStdVerdictEl.className = 'oc-verdict oc-unknown';
-  ocExtVerdictEl.textContent = '… submitting forgery to oracle';
-  ocExtVerdictEl.className = 'oc-verdict oc-pending';
+    ocExtVerdictEl.textContent = '\u2026 submitting forgeries to the oracle';
+    ocExtVerdictEl.className = 'oc-verdict oc-pending';
+    if (!prefersReducedMotion) await sleep(400);
 
-  if (!prefersReducedMotion) await sleep(500);
-
-  // Real forgery: encrypt a message with the candidate key, hand ct+tag to the
-  // decryption oracle. A correct key produces a tag the oracle validates.
-  const msg = new TextEncoder().encode('oracle-confirm');
-  const forged = encryptToyHiAE(key, nonce, msg, ad);
-  const verdict = decryptOracle(key, nonce, forged.ciphertext, ad, forged.tag);
-
-  ocExtVerdictEl.textContent = verdict.valid
-    ? '✓ ACCEPTED — candidate ' + label + ' confirmed'
-    : '✗ rejected';
-  ocExtVerdictEl.className = 'oc-verdict ' + (verdict.valid ? 'oc-accept' : 'oc-reject');
-  ocRunBtnEl.disabled = false;
+    let eliminated = 0;
+    let confirmed: string | null = null;
+    const rows = ocCandidates!.map((c) => {
+      // A real forgery from each candidate, judged by the real decryption
+      // oracle keyed with the true key. A wrong candidate produces a tag the
+      // oracle rejects; the right one produces a tag it accepts.
+      const msg = new TextEncoder().encode('oracle-confirm');
+      const forged = encryptToyHiAE(c.key, nonce, msg, ad);
+      const verdict = decryptOracle(trueKey, nonce, forged.ciphertext, ad, forged.tag);
+      if (verdict.valid) confirmed = c.label;
+      else eliminated++;
+      return {
+        text: c.label + (verdict.valid ? ' \u2713 ACCEPTED \u2014 confirmed' : ' \u2717 rejected \u2014 eliminated'),
+        cls: verdict.valid ? 'oc-item-accept' : 'oc-item-reject',
+      };
+    });
+    renderOcList($('oc-ext-list'), rows);
+    ocExtVerdictEl.textContent =
+      eliminated + ' of ' + ocCandidates!.length + ' eliminated' +
+      (confirmed ? '; ' + confirmed + ' ACCEPTED' : '; none accepted');
+    ocExtVerdictEl.className = 'oc-verdict ' + (confirmed ? 'oc-accept' : 'oc-reject');
+  } finally {
+    ocRunBtnEl.disabled = false;
+  }
 });
 
 /* ------------------------------------------------------------------ */
 /* Generate Instance                                                   */
 /* ------------------------------------------------------------------ */
 generateBtnEl.addEventListener('click', () => {
-  // Draw a secret seed from the disclosed reduced toy keyspace, derive the key
+  // Draw a secret seed from the keyspace the learner disclosed, derive the key
   // from it. The attack must REDISCOVER this seed from oracle output \u2014 it is
   // never handed the key or the seed.
-  const seedBytes = new Uint8Array(2);
-  crypto.getRandomValues(seedBytes);
-  const seed = ((seedBytes[0] | (seedBytes[1] << 8)) & (TOY_SEED_SPACE - 1)) >>> 0;
+  const seedSpace = seedSpaceFor(Number(seedWidthEl.value));
+  const seed = chooseSeed(seedSpace);
   const key = deriveToyKey(seed);
 
-  instance = { seed, key, nonce: new Uint8Array(TOY_NONCE), ad: new Uint8Array(TOY_AD) };
+  instance = { seed, key, seedSpace, nonce: new Uint8Array(TOY_NONCE), ad: new Uint8Array(TOY_AD) };
 
   instanceMetaEl.textContent =
-    'Toy instance generated. Secret seed drawn from the disclosed 2^' + TOY_SEED_BITS +
-    ' keyspace; key derived by the public toy KDF. Encryption + decryption oracles ready. ' +
+    'Toy instance generated. Secret seed drawn from the disclosed 2^' +
+    Math.log2(seedSpace).toFixed(0) + ' keyspace (the KDF itself spans 2^' + TOY_SEED_BITS +
+    '); key derived by the public toy KDF. Encryption oracle ready. ' +
     '(The attack does not get the seed or key.)';
   runBtnEl.disabled = false;
-  attackLogEl.innerHTML = '';
-  disclaimerEl.classList.add('hidden');
-  forgeResultEl.classList.add('hidden');
-  kvVizEl.setAttribute('aria-hidden', 'true');
-  kvObservedEl.textContent = '';
-  kvCandidateEl.textContent = '';
+  retireAttackRun();
   kvStatusEl.textContent = 'Instance ready. Run the attack to watch each candidate get checked against the leak.';
-  kvStatusEl.className = 'kv-status';
-  kvCandLabelEl.textContent = 'Candidate re-derives';
+
+  // The leak rows now belong to this instance: they are the block phase 1 will
+  // capture, so a learner can check the attack's observed leak against them.
+  renderLeakExplainer(
+    key,
+    'These rows are the live instance\u2019s own leak \u2014 the exact block the attack captures below. ' +
+      'The seed stays secret; the keystream does not, which is the leak.',
+  );
 });
 
 /* ------------------------------------------------------------------ */
@@ -985,10 +1245,14 @@ runBtnEl.addEventListener('click', async () => {
     return { ct: out.ciphertext, tag: out.tag };
   };
 
-  const decOracleFn = async (ct: Uint8Array, tag: Uint8Array) => {
-    const out = decryptOracle(cur.key, cur.nonce, ct, cur.ad, tag);
-    return { valid: out.valid, pt: out.plaintext };
-  };
+  // Under a standard-model scenario there is no oracle object at all, not a
+  // disabled one: the attack is handed null and cannot query what does not exist.
+  const decOracleFn = oracleExposed()
+    ? async (ct: Uint8Array, tag: Uint8Array) => {
+        const out = decryptOracle(cur.key, cur.nonce, ct, cur.ad, tag);
+        return { valid: out.valid, pt: out.plaintext };
+      }
+    : null;
 
   try {
     const start = performance.now();
@@ -1000,14 +1264,20 @@ runBtnEl.addEventListener('click', async () => {
       (p: AttackProgress) => {
         if (p.phase === 'guess-determine' && p.step === 'scan-0')
           appendLog('\u25B6 Phase 2: Guess-and-determine over the disclosed toy keyspace', 'phase-header');
-        if (p.phase === 'forge' && p.step === 'accepted')
-          appendLog('\u25B6 Phase 3: Forge \u2014 confirm the recovered key against the decryption oracle', 'phase-header');
+        if (p.phase === 'forge')
+          appendLog(
+            p.step === 'no-oracle'
+              ? '\u25B6 Phase 3: Forge \u2014 BLOCKED, this deployment exposes no decryption oracle'
+              : '\u25B6 Phase 3: Forge \u2014 confirm the recovered key against the decryption oracle',
+            'phase-header',
+          );
         renderProgress(p);
       },
       {
         nonce: cur.nonce,
         ad: cur.ad,
         encryptLocal: (k, n, pt, ad) => encryptToyHiAE(k, n, pt, ad),
+        seedSpace: cur.seedSpace,
       },
     );
 
@@ -1017,7 +1287,7 @@ runBtnEl.addEventListener('click', async () => {
     // decoy candidates failing it byte-by-byte and the recovered one satisfying
     // it. All keystreams here are recomputed live from the recovered seed's key.
     const observedLeak = keystreamBlockOf(cur.key);
-    await animateEquationCheck(observedLeak, result.recoveredSeed);
+    await animateEquationCheck(observedLeak, result.recoveredSeed, result.seedSpace);
 
     appendLog('');
     appendLog('\u25B6 KEY RECOVERED', 'phase-header result-header');
@@ -1027,17 +1297,40 @@ runBtnEl.addEventListener('click', async () => {
     appendLog('  Recovered seed: 0x' + result.recoveredSeed.toString(16).padStart(4, '0') +
               ' (rediscovered from oracle output, not read from the instance)');
     appendLog('  Recovered key:  ' + recHex.slice(0, 16) + '\u2026 (32 bytes)');
+    appendLog('  Candidates tested: ' + result.candidatesTested.toLocaleString('en-US') + ' of ' +
+              result.seedSpace.toLocaleString('en-US') + ' (2^' +
+              Math.log2(result.seedSpace).toFixed(0) + ' disclosed keyspace)');
     appendLog('  Verification vs instance ground truth: ' + (match ? '\u2713 EXACT MATCH' : '\u2717 MISMATCH'),
               match ? 'ok-text' : 'danger-text');
+    if (!result.oracleAvailable) {
+      // Be explicit about who knows what. The line above is this page checking
+      // its own answer; the attacker in this deployment cannot run that check.
+      appendLog(
+        '  \u26A0 That match is checked by this page, which knows the seed. The attacker in Scenario ' +
+        activeScenario.toUpperCase() + ' cannot run it: with no decryption oracle there is no predicate ' +
+        'to evaluate a candidate against, so the key is recovered and unconfirmable at the same time.',
+        'log-note',
+      );
+    }
     appendLog('  Total time: ' + elapsed + 'ms');
     appendLog(
-      '  Note: this recovers the toy key by searching the disclosed 2^' + TOY_SEED_BITS +
+      '  Note: this recovers the toy key by searching the disclosed 2^' +
+      Math.log2(result.seedSpace).toFixed(0) +
       ' keyspace against real oracle output. Full-scale recovery of a random 256-bit HiAE key ' +
       '(2^209 time, 2^130 data, ePrint 2025/1203) is annotated, never executed in-browser.',
       'log-note',
     );
 
-    forgeResultEl.classList.remove('hidden');
+    recordRun({
+      seedSpace: result.seedSpace,
+      seed: result.recoveredSeed,
+      tested: result.candidatesTested,
+      ms: elapsed,
+      confirmed: result.forgeConfirmed,
+      oracleAvailable: result.oracleAvailable,
+    });
+
+    if (result.forgeConfirmed) forgeResultEl.classList.remove('hidden');
     disclaimerEl.classList.remove('hidden');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

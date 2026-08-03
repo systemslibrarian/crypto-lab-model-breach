@@ -22,6 +22,28 @@ import { xorBytes } from './bytes';
 export const TOY_SEED_BITS = 16;
 export const TOY_SEED_SPACE = 1 << TOY_SEED_BITS;
 
+/**
+ * Widths the learner can disclose to the attacker.
+ *
+ * The keyspace used to be a fixed 2^16 with a randomly drawn seed, so the two
+ * numbers that actually characterise a brute-force search — how many keys were
+ * tested, and how long that took — came out much the same on every run and the
+ * learner had no lever on either. Narrowing or widening the disclosed space
+ * moves both, and a cost that moves when you change its input is a measurement
+ * rather than a caption.
+ *
+ * 16 is the ceiling because `deriveToyKey` consumes exactly 16 bits of seed: a
+ * wider search would re-test keys it had already ruled out, and the reported
+ * candidate count would stop being true.
+ */
+export const SEARCH_WIDTHS = [8, 10, 12, 14, 16] as const;
+
+/** Size of the disclosed keyspace for a width, clamped to the KDF's domain. */
+export function seedSpaceFor(bits: number): number {
+  const b = Math.min(Math.max(Math.trunc(bits), 1), TOY_SEED_BITS);
+  return 1 << b;
+}
+
 /** Derive a 32-byte key deterministically from a `TOY_SEED_BITS`-bit seed. */
 export function deriveToyKey(seed: number): Uint8Array {
   const s = seed & (TOY_SEED_SPACE - 1);
