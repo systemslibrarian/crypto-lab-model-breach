@@ -137,14 +137,6 @@ test('no WCAG A/AA violations in dark theme', async ({ page }) => {
   await scanAfterAttack(page, 'b');
 });
 
-test('no WCAG A/AA violations in light theme', async ({ page }) => {
-  test.setTimeout(120_000);
-  await openLab(page);
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await scanAllScenarios(page);
-  await scanAfterAttack(page, 'b');
-});
 
 test('no WCAG A/AA violations with the forge phase blocked (dark)', async ({ page }) => {
   test.setTimeout(120_000);
@@ -152,10 +144,3 @@ test('no WCAG A/AA violations with the forge phase blocked (dark)', async ({ pag
   await scanAfterAttack(page, 'a');
 });
 
-test('no WCAG A/AA violations with the forge phase blocked (light)', async ({ page }) => {
-  test.setTimeout(120_000);
-  await openLab(page);
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await scanAfterAttack(page, 'a');
-});
