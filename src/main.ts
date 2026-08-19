@@ -46,15 +46,13 @@ app.innerHTML = `
 
   <!-- Fleet hero standard. The shared site header owns role="banner"; the JS in
        index.html demotes any implicit banner, so this <header> gets role="group".
-       The theme toggle stays in the DOM (main.ts wires it) but is hidden by the
-       shared header CSS; it lives here so the lab's theme JS keeps working. -->
+       Dark is the only theme and it is pinned in index.html before first paint,
+       so the hero carries no theme control. -->
   <header class="cl-hero">
     <div class="cl-hero-main">
       <h1 class="cl-hero-title">Model Breach</h1>
       <p class="cl-hero-sub">Threat models as contracts · HiAE case study</p>
       <p class="cl-hero-desc">Walk a live case study where HiAE's 256-bit claim holds under its stated model, then watch it fall to 2<sup>209</sup> the moment an unlimited decryption oracle is added to the adversary.</p>
-      <button id="theme-toggle" class="theme-toggle" type="button"
-              aria-label="Toggle dark and light theme">\u{1F319}</button>
     </div>
     <aside class="cl-hero-why" aria-label="Why it matters">
       <span class="cl-hero-why-label">WHY IT MATTERS</span>
@@ -497,7 +495,6 @@ function $(id: string): HTMLElement {
 }
 
 const scenarioPanelEl = $('scenario-panel');
-const themeToggleEl   = $('theme-toggle') as HTMLButtonElement;
 const generateBtnEl   = $('generate-instance') as HTMLButtonElement;
 const runBtnEl        = $('run-attack') as HTMLButtonElement;
 const instanceMetaEl  = $('instance-meta');
@@ -731,24 +728,6 @@ document.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach(tab => {
     }
   });
 });
-
-/* ------------------------------------------------------------------ */
-/* Theme toggle                                                        */
-/* ------------------------------------------------------------------ */
-function syncThemeIcon(): void {
-  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-  themeToggleEl.textContent = isDark ? '\u{1F319}' : '\u2600\uFE0F';
-}
-
-themeToggleEl.addEventListener('click', () => {
-  const cur = document.documentElement.getAttribute('data-theme') === 'light'
-    ? 'light' : 'dark';
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('cv-theme', next);
-  syncThemeIcon();
-});
-syncThemeIcon();
 
 /* ------------------------------------------------------------------ */
 /* Panel A \u2014 state animation                                           */
