@@ -213,7 +213,7 @@ export async function runModelBreachAttack(
         phase: 'guess-determine', step: 'scan-' + nextCp,
         pct: 15 + nextCp * 15,
         candidateCount: seedSpace - tested,
-        complexityNote: 'Toy: <=2^' + Math.log2(seedSpace).toFixed(0) + ' | Full: 2^209',
+        complexityNote: 'Toy: <=2^' + Math.log2(seedSpace).toFixed(0) + ' | Hu full-size analysis: 2^209',
       });
       nextCp++;
     }
@@ -234,7 +234,7 @@ export async function runModelBreachAttack(
       tested + ' of ' + seedSpace + ' tested).',
     candidatesBefore: seedSpace, candidatesAfter: 1,
     toyComplexity: 'Toy: <=2^' + Math.log2(seedSpace).toFixed(0) + ' keys',
-    fullComplexity: 'Full: 2^209 time',
+    fullComplexity: 'Hu full-size analysis: 2^209 time',
     elapsedMs: elapsed(t2),
   });
 
@@ -302,7 +302,7 @@ export async function runModelBreachAttack(
     elapsedMs: elapsed(t3),
   });
 
-  onProgress({ phase: 'done', step: 'key-recovered', pct: 100, candidateCount: 1, complexityNote: 'Toy: complete | Full: 2^209' });
+  onProgress({ phase: 'done', step: 'key-recovered', pct: 100, candidateCount: 1, complexityNote: 'Toy: complete | Hu full-size analysis: 2^209' });
 
   return {
     recoveredKey, recoveredSeed, steps,

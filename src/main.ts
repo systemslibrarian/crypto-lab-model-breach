@@ -52,7 +52,7 @@ app.innerHTML = `
     <div class="cl-hero-main">
       <h1 class="cl-hero-title">Model Breach</h1>
       <p class="cl-hero-sub">Threat models as contracts · HiAE case study</p>
-      <p class="cl-hero-desc">Walk a live case study where HiAE's 256-bit claim holds under its stated model, then watch it fall to 2<sup>209</sup> the moment an unlimited decryption oracle is added to the adversary.</p>
+      <p class="cl-hero-desc">Explore how an attack’s oracle assumptions change its claimed cost. The live toy exhibit illustrates Hu’s algebraic analysis; the research comparison separates it from Bille–Tischhauser’s stronger 2026 result.</p>
     </div>
     <aside class="cl-hero-why" aria-label="Why it matters">
       <span class="cl-hero-why-label">WHY IT MATTERS</span>
@@ -147,14 +147,14 @@ STATUS:  Secure under these conditions \u2713</pre>
             <td>Submit <strong>UNLIMITED</strong> forgeries to decryption oracle until one tag validates \u2717</td>
           </tr>
           <tr>
-            <td class="ok-text">HiAE security: 2<sup>256</sup> \u2713</td>
-            <td class="danger-text">HiAE security: 2<sup>209</sup> \u2717</td>
+            <td class="ok-text">Designers’ key-recovery claim: 2<sup>256</sup> \u2713</td>
+            <td class="danger-text">Hu attack time: 2<sup>209</sup> \u2717</td>
           </tr>
         </tbody>
       </table>
 
       <div class="gap-wrap">
-        <p class="gap-title">How big is the breach? (bars are log-scale: length \u221d the exponent)</p>
+        <p class="gap-title">Hu’s claimed work versus the designers’ claim (bars are log-scale: length \u221d the exponent)</p>
         <div class="magbars">
           <div class="magbar-row">
             <span class="magbar-name">HiAE claim</span>
@@ -165,7 +165,7 @@ STATUS:  Secure under these conditions \u2713</pre>
             </div>
           </div>
           <div class="magbar-row">
-            <span class="magbar-name">Attack cost</span>
+            <span class="magbar-name">Hu attack time</span>
             <div class="magbar-track">
               <div class="magbar-fill magbar-attack" style="width:81.64%">
                 <span class="magbar-val">2<sup>209</sup></span>
@@ -177,6 +177,18 @@ STATUS:  Secure under these conditions \u2713</pre>
           <strong>2<sup>47</sup></strong>, roughly <strong>140 trillion\u00d7</strong> easier than the headline
           claim. On a log scale that is the whole amber shortfall between the two bars above.</p>
       </div>
+
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Versioned HiAE cryptanalysis comparison">
+        <table class="model-table">
+          <caption>Separate results and oracle assumptions — checked 12 October 2026</caption>
+          <thead><tr><th scope="col">Source / version</th><th scope="col">Time / data / success</th><th scope="col">Attack model</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://eprint.iacr.org/2025/1203">Hu, 2025/1203</a> — preprint, revised 16 April 2026</td><td>Approximately 2<sup>209</sup> time; 2<sup>130</sup> data; success probability 1</td><td>Encryption and decryption oracles with repeated forged-tag queries; stronger than the original claim. This is the selected full-size analysis annotated by the toy exhibit.</td></tr>
+            <tr><td><a href="https://eprint.iacr.org/2025/1180">Bille–Tischhauser, 2025/1180</a> — ToSC 2026; revised 16 June 2026</td><td>At most 2<sup>129</sup> time; 2<sup>128</sup> data for full key recovery. For 1 ≤ q ≤ 2<sup>128</sup>, total cost / success probability ≤ 2<sup>129</sup>.</td><td>Nonce-respecting with decryption queries; the trade-off addresses the designers’ exclusion of repeated tag guessing. The paper also treats nonce misuse and release of unverified plaintext separately.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tiny">Both full-size results remain computationally infeasible. The browser’s reduced-seed exhaustive search implements neither full-size attack. <a href="https://eprint.iacr.org/2025/1235">The designers’ clarification (revised 9 July 2025, preprint)</a> excludes forged-tag decryption queries from its original key-recovery claim; attribution of different models is not a proof of deployment safety.</p>
 
       <div class="scenario-tabs" role="tablist"
            aria-label="Real-world deployment scenarios">
@@ -195,8 +207,7 @@ STATUS:  Secure under these conditions \u2713</pre>
       <h2 class="panel-title">WHY THE ORACLE CHANGES EVERYTHING</h2>
       <p class="bridge-lede">A candidate key is only useful if you can <em>test</em> it. The one capability the
         extended model adds \u2014 a decryption oracle that answers <strong>valid / invalid</strong> \u2014 is precisely
-        what turns "I have a guess" into "I can check my guess." That is the whole reason the number in the table
-        moves from 2<sup>256</sup> to 2<sup>209</sup>.</p>
+        what turns "I have a guess" into "I can check my guess." These bars describe Hu’s selected attack, not a generic extended-model security bound. See the separate Bille–Tischhauser comparison below.</p>
 
       <div class="oracle-compare">
         <div class="oc-side oc-standard">
@@ -422,8 +433,8 @@ STATUS:  Secure under these conditions \u2713</pre>
       <div class="timeline">
         <div class="tl-entry">
           <b>Jun 2025</b>
-          <span>ePrint 2025/1203 \u2014 Hu et al.<br>
-          \u201CBreaking The Authenticated Encryption Scheme HiAE\u201D<br>
+          <span>ePrint 2025/1203 \u2014 Xichao Hu<br>
+          \u201CAnalyze the Security of the AEAD Scheme HiAE by Algebraic Techniques\u201D<br>
           Attack: 2<sup>209</sup> time, 2<sup>130</sup> data.
           Extended decryption oracle model.</span>
           <a href="https://eprint.iacr.org/2025/1203.pdf"
@@ -433,7 +444,7 @@ STATUS:  Secure under these conditions \u2713</pre>
           <b>Jun 2025</b>
           <span>ePrint 2025/1180 \u2014 Bille &amp; Tischhauser (concurrent, independent)<br>
           \u201CCryptanalysis of HiAE\u201D \u2014 independent confirmation of the
-          extended-model vulnerability. Two papers, same result, same week.</span>
+          extended-model vulnerability. The revised 16 June 2026 ToSC paper reports 2<sup>128</sup> data and at most 2<sup>129</sup> time under a nonce-respecting decryption-query model, plus a query/success trade-off. This is a distinct result, not Hu’s 2<sup>209</sup> bound.</span>
         </div>
         <div class="tl-entry">
           <b>Jul 2025</b>
@@ -449,7 +460,7 @@ STATUS:  Secure under these conditions \u2713</pre>
       <div class="verdict-grid">
         <div>
           <h3 class="verdict-h">WHAT THE PAPER SHOWS</h3>
-          <p>HiAE security falls to 2<sup>209</sup> in the extended oracle model.</p>
+          <p>Hu’s attack costs approximately 2<sup>209</sup> time and 2<sup>130</sup> data in its stronger encryption/decryption-oracle model; it is computationally infeasible.</p>
           <p>The byte-decomposition technique is novel and generalizes to other AEADs.</p>
           <p>The IETF draft should discuss extended adversary models explicitly.</p>
         </div>
@@ -658,17 +669,17 @@ dsRunBtnEl.addEventListener('click', () => {
 /* ------------------------------------------------------------------ */
 const scenarios: Record<ScenarioId, { text: string; cls: string; decryptionOracle: boolean }> = {
   a: {
-    text: 'Scenario A: 6G base station \u2014 Attacker can observe traffic but cannot submit forgeries to the decryption pipeline. Standard model applies. HiAE is safe. \u2713',
+    text: 'Scenario A: 6G base station \u2014 Attacker can observe traffic but cannot submit forgeries to the decryption pipeline. Standard model applies. This attack’s decryption oracle is absent; the designers’ stated claim applies only under its assumptions. \u2713',
     cls: 'ok',
     decryptionOracle: false,
   },
   b: {
-    text: 'Scenario B: Shared API endpoint \u2014 Decryption is exposed as a service. Attacker can submit forged ciphertexts. Extended model applies. HiAE security falls to 2^209. \u26A0',
+    text: 'Scenario B: Shared API endpoint \u2014 Decryption is exposed as a service. Attacker can submit forged ciphertexts. Extended model applies. Hu’s selected attack has 2^209 time / 2^130 data; Bille–Tischhauser report a different 2^129 time / 2^128 data result under their oracle model. Neither is a practical attack. \u26A0',
     cls: 'warn',
     decryptionOracle: true,
   },
   c: {
-    text: 'Scenario C: GPU interconnect \u2014 Point-to-point hardware link. No decryption oracle exposure. Standard model applies. HiAE is safe. \u2713',
+    text: 'Scenario C: GPU interconnect \u2014 Point-to-point hardware link. No decryption oracle exposure. Standard model applies. This attack’s decryption oracle is absent; the designers’ stated claim applies only under its assumptions. \u2713',
     cls: 'ok',
     decryptionOracle: false,
   },

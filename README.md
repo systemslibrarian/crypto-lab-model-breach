@@ -11,15 +11,15 @@ is the fine print.
 HiAE (ePrint 2025/377) is a real AEAD scheme achieving 340 Gbps on x86
 and 180 Gbps on ARM — the fastest cross-platform AEAD ever published.
 It claims 256-bit security against key-recovery attacks in the
-nonce-respecting setting. That claim is correct.
+nonce-respecting setting. The designers restrict that claim to their stated model.
 
-This demo uses the algebraic attack from ePrint 2025/1203 (Hu et al.,
+This demo uses the algebraic attack from ePrint 2025/1203 (Xichao Hu,
 June 2025 — https://eprint.iacr.org/2025/1203.pdf) as a live illustration
 of what happens when an adversary operates outside the assumed boundaries:
 under a stronger model where the attacker can submit unlimited forgeries
-to the decryption oracle, security falls to 2^209. The HiAE designers
+to the decryption oracle, Hu reports about 2^209 time and 2^130 data. The HiAE designers
 responded in ePrint 2025/1235, maintaining their claims are intact under
-the original model. Both positions are correct — which is exactly the point.
+the original model. These are attributed claims under different models, not an adjudication of deployment safety.
 
 Implements real AESL (one AES round, zero round key, verified against the
 FIPS-197 round vector), a structurally correct toy-scale HiAE, and a live
@@ -121,9 +121,7 @@ The demo implements real AESL (one AES round with a zero round key) and a struct
   is implemented, unit-tested, and now runnable in-browser one step at a time —
   but the reduced keyspace, not that machinery, is what the end-to-end key
   recovery drives.
-- **The concurrent paper:** Bille & Tischhauser (ePrint 2025/1180) independently
-  reached the same conclusions simultaneously. This is not a solo discovery —
-  it reflects a known gap in this family of AEADs.
+- **The distinct, stronger result:** [Bille & Tischhauser, ePrint 2025/1180](https://eprint.iacr.org/2025/1180), ToSC 2026, revised 16 June 2026, report full key recovery with 2^128 data and at most 2^129 time in a nonce-respecting setting with decryption queries. They also give a query/success trade-off with total cost divided by success probability at most 2^129. This is not Hu’s 2^209-time / 2^130-data result. Both full-size costs remain infeasible; the reduced-seed browser search reproduces neither. The visible comparison keeps source version, success and oracle access separate.
 
 ## Real-World Usage
 
