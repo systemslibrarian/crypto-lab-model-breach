@@ -97,7 +97,10 @@ CONDITIONS:
      to the decryption oracle
 
 PERFORMANCE: 340 Gbps (x86) \u00b7 180 Gbps (ARM)
-STATUS:  Secure under these conditions \u2713</pre>
+STATUS:  Designers’ key-recovery claim under these conditions</pre>
+
+      <p class="tiny">Key recovery, forgery and statistical distinguishability are different security goals.
+        <a href="#hiae-draft-07">Read the 1 November 2026 draft update</a>.</p>
 
       <h3>Full HiAE state (2048-bit)</h3>
       <div id="full-state" class="state-grid"
@@ -451,11 +454,23 @@ STATUS:  Secure under these conditions \u2713</pre>
           <span>ePrint 2025/1235 \u2014 HiAE Designers\u2019 Response<br>
           \u201CHiAE remains secure in its intended model.\u201D<br>
           \u201CThe attack operates outside Section 4.5 of our paper.\u201D<br>
-          HiAE security claims: intact under standard model.</span>
+          This is the designers’ response to the oracle-based attack, not a verdict on every security goal. See the newer statistical-attack note below.</span>
           <a href="https://eprint.iacr.org/2025/1235.pdf"
              target="_blank" rel="noreferrer">View Response \u2197<span class="sr-only"> (opens in new tab)</span></a>
         </div>
       </div>
+
+      <aside id="hiae-draft-07" aria-labelledby="hiae-draft-07-title">
+        <h3 id="hiae-draft-07-title">Research update — 1 November 2026</h3>
+        <p><a href="https://datatracker.ietf.org/doc/draft-pham-cfrg-hiae/07/">HiAE draft-07, §§6.1 and 6.3</a>
+          acknowledges a statistical attack: with an impractically large amount of known plaintext
+          and ciphertext, an attacker can tell HiAE output apart from random data. That result
+          does not establish key recovery or message forgery.</p>
+        <p>This is an <strong>individual Internet-Draft, not a final standard</strong>.
+          Its key-recovery and forgery claims must be read with their stated assumptions;
+          they are separate from statistical distinguishability. The reduced-keyspace browser
+          demonstration does not reproduce this statistical attack.</p>
+      </aside>
 
       <div class="verdict-grid">
         <div>
@@ -466,7 +481,7 @@ STATUS:  Secure under these conditions \u2713</pre>
         </div>
         <div>
           <h3 class="verdict-h">WHAT IT DOES NOT SHOW</h3>
-          <p>HiAE is not invalidated for standard-model deployments.</p>
+          <p>Hu’s result alone is not a deployment verdict; assess each security goal and the applicable attack model.</p>
           <p>HiAE\u2019s performance or design is flawed \u2014 it is genuinely excellent engineering.</p>
           <p>The IETF draft should be withdrawn.</p>
         </div>

@@ -103,14 +103,29 @@ the leak, and the threat-model gap is drawn as **log-scale magnitude bars**
 
 **[systemslibrarian.github.io/crypto-lab-model-breach](https://systemslibrarian.github.io/crypto-lab-model-breach/)**
 
-The demo implements real AESL (one AES round with a zero round key) and a structurally correct toy-scale HiAE, then runs a live attack that actually recovers the key of a toy instance from oracle output — observe the keystream, search the disclosed reduced keyspace for the matching key, and get the decryption oracle to accept a forgery signed with it. The recovered key is verified against the instance. This makes the threat-model point concrete: the forgery step only works because the decryption oracle is exposed, which is outside HiAE's stated model — and the same scheme stays secure under its original nonce-respecting claim.
+The demo implements real AESL (one AES round with a zero round key) and a structurally correct toy-scale HiAE, then runs a live attack that actually recovers the key of a toy instance from oracle output — observe the keystream, search the disclosed reduced keyspace for the matching key, and get the decryption oracle to accept a forgery signed with it. The recovered key is verified against the instance. This makes the threat-model point concrete: the forgery step only works because the decryption oracle is exposed, which is outside HiAE's stated model — this does not establish security of the full scheme under its original claim.
+
+## Research update — 1 November 2026
+
+[HiAE draft-07, §§6.1 and 6.3](https://datatracker.ietf.org/doc/draft-pham-cfrg-hiae/07/)
+acknowledges a statistical attack requiring an impractically large amount of known
+plaintext and ciphertext to distinguish HiAE output from random data. This result
+does not establish key recovery or message forgery. It is an **individual
+Internet-Draft, not a final standard**. Key recovery, forgery and statistical
+distinguishability are separate goals; the draft’s claims retain their stated
+assumptions. This browser’s reduced-keyspace demonstration does not reproduce
+the statistical attack.
+
+The dated source note is visible in **The Academic Record**, under **Research
+update — 1 November 2026**, and linked from **The Security Contract**. Reviewed
+and incorporated on 2 November 2026.
 
 ## What Can Go Wrong
 
 - **The threat model mismatch:** This attack requires both an encryption oracle
   AND a decryption oracle that accepts 2^128 forgery attempts. If your deployment
-  cannot expose a decryption oracle to adversaries, you are in the standard model
-  and HiAE's 256-bit claim holds.
+  cannot expose a decryption oracle to adversaries, that specific attack model
+  does not apply; this alone does not prove HiAE’s 256-bit claim or settle other security goals.
 - **Toy scale vs full scale:** The live recovery brute-forces a *disclosed
   toy keyspace of the learner's chosen width, up to 2^16,* against real oracle output (the differential-step panel is
   the paper's own technique, but at one-AESL-call scale) — this is what makes an
@@ -127,7 +142,7 @@ The demo implements real AESL (one AES round with a zero round key) and a struct
 
 - The same extended-oracle attack framework was applied to AEGIS first, then Rocca, now HiAE — the pattern suggests any AES-round-function-based AEAD with insufficient key mixing at initialization/finalization may share this structural property.
 - If you are designing a new AEAD, your security analysis should explicitly address the extended decryption oracle model even if you choose to exclude it from your formal claims.
-- HiAE itself is the IETF CFRG draft draft-pham-cfrg-hiae; deployment decisions should account for whether the target environment (e.g. 6G or GPU/NPU interconnect) can expose decryption oracles to adversaries capable of 2^128 queries.
+- HiAE is described in the individual Internet-Draft draft-pham-cfrg-hiae, not a final standard; deployment decisions should account for whether the target environment (e.g. 6G or GPU/NPU interconnect) can expose decryption oracles to adversaries capable of 2^128 queries.
 
 ## How to Run Locally
 
