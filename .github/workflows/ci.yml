@@ -7,6 +7,14 @@ on:
     branches-ignore: [main] # main is covered by the deploy workflow
   workflow_dispatch:
 
+# Least privilege for every job that does not ask for more. `check` only reads
+# this repository: checkout, npm ci, typecheck, unit tests, build, a Playwright
+# browser install, then the accessibility gate against a local server.
+# `dependabot-auto-merge` declares its own wider block below, which overrides
+# this for that job alone, so the bump and its deploy dispatch are unchanged.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
