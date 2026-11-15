@@ -22,11 +22,15 @@ responded in ePrint 2025/1235, maintaining their claims are intact under
 the original model. These are attributed claims under different models, not an adjudication of deployment safety.
 
 Implements real AESL (one AES round, zero round key, verified against the
-FIPS-197 round vector), a structurally correct toy-scale HiAE, and a live
+FIPS-197 round vector), a structurally correct **four-block** toy HiAE (real
+HiAE keeps sixteen 128-bit state blocks), and a live
 key-recovery attack that is **genuinely computed from oracle output**:
 
-1. **Observe** — one encryption-oracle query leaks the keystream block
-   `AESL(S0 ⊕ S2)` of the target's post-init state (`ct ⊕ pt`).
+1. **Observe** — one encryption-oracle query leaks the toy's keystream block
+   `AESL(S0 ⊕ S2)` of the target's post-init state (`ct ⊕ pt`). That is this
+   four-block toy's own output rule. Real HiAE computes
+   `t = AESL(S0 ⊕ S1) ⊕ mi` and `ci = t ⊕ S9` over sixteen state blocks
+   ([draft-pham-cfrg-hiae-07 §3.4.2.2](https://datatracker.ietf.org/doc/draft-pham-cfrg-hiae/07/)).
 2. **Guess-and-determine** — the attack searches an *honestly disclosed reduced
    toy keyspace* (a public function of a seed, up to 16 bits) for the one key
    whose derived keystream reproduces what was observed. The width of that
@@ -36,8 +40,8 @@ key-recovery attack that is **genuinely computed from oracle output**:
    selected deployment exposes a decryption oracle*, confirms the **oracle
    accepts it** (and rejects a random-tag forgery). Under Scenario A or C the
    attack is handed no oracle at all, so this phase is blocked and the run ends
-   with a key that is recovered and unconfirmable — the standard model enforced
-   rather than described.
+   with the key phase 2's keystream equation already singled out and a forgery
+   nothing will judge — the standard model enforced rather than described.
 
 The recovered key is checked byte-for-byte against the instance and is never
 read from oracle metadata. **The reduced keyspace is the toy** — recovering a
@@ -59,23 +63,25 @@ state, which is where 2^209 comes from — and the panel says so on the page.
 No backends, no mocks, no recordings.
 
 The recovery is shown as what it actually is — an **algebraic equation check**,
-not a brute-force count. The captured keystream `A(S0 ⊕ S2)` is treated as a
+not a brute-force count. The captured toy keystream `A(S0 ⊕ S2)` is treated as a
 constraint: candidate keys are re-derived live and lit up **byte-by-byte** where
 they satisfy the equation, so wrong keys visibly fail on mismatched bytes and the
 recovered key satisfies all sixteen. A companion panel isolates *why the oracle
-matters* — the same candidate is unconfirmable in the ciphertext-only world and
-confirmed by a real decryption-oracle **accept** in the extended world — and a
+matters* — with nothing but an intercepted ciphertext the same candidate cannot be
+ruled out, while a real decryption-oracle **accept** confirms it in the extended
+world — and a
 closing accept/reject contrast shows the forgery going through as the concrete
 meaning of "the contract broke." Panel A opens with a plain-language gloss of the
 four assumed terms (AEAD, nonce, nonce-respecting, decryption oracle), and its
-state grid animates the real update path `S15 ← A(S0 ⊕ S1) ⊕ A(S13) ⊕ X` on Run
+full-HiAE state grid animates the full cipher's update path
+`S15 ← A(S0 ⊕ S1) ⊕ A(S13) ⊕ X` on Run
 Attack rather than pulsing on a disconnected timer.
 
 For a newcomer, the mechanism is now made concrete before the argument leans on it.
 An always-visible **"what is a keystream leak?"** micro-explainer encrypts a block
 of zeros live and shows three byte rows — zero plaintext, ciphertext, and the
 derived keystream — so the learner *sees* that `ct` of zeros literally **is** the
-keystream block `A(S0 ⊕ S2)`, and why a single query leaks a testable constraint.
+toy's keystream block `A(S0 ⊕ S2)`, and why a single query leaks a testable constraint.
 Once an instance exists those rows show *its* leak — the exact block phase 1
 captures — rather than an unrelated fixed key. A **method-honesty callout** states
 plainly that the browser's exhaustive seed search and the paper's 2^209
@@ -119,6 +125,19 @@ the statistical attack.
 The dated source note is visible in **The Academic Record**, under **Research
 update — 1 November 2026**, and linked from **The Security Contract**. Reviewed
 and incorporated on 2 November 2026.
+
+**Sources re-checked 15 November 2026:** the keystream rule in step 1 above is
+this four-block toy's own. Real HiAE computes `t = AESL(S0 ⊕ S1) ⊕ mi` and
+`ci = t ⊕ S9` over sixteen 128-bit state blocks
+([draft-pham-cfrg-hiae-07 §§3.1 and 3.4.2.2](https://datatracker.ietf.org/doc/draft-pham-cfrg-hiae/07/)),
+so the page's full-state grid now marks S0, S1 and S9 as the blocks its keystream
+comes from, and the `S15 ← A(S0 ⊕ S1) ⊕ A(S13) ⊕ X` line is labelled as the full
+cipher's. The oracle panels were re-read against this lab's own phase 2 and the
+abstract of [ePrint 2025/1203](https://eprint.iacr.org/2025/1203): the keystream
+block an encryption-oracle query leaks is already a predicate a candidate key
+must satisfy, and the paper's decryption-oracle queries are how the state is
+recovered at all — "leveraging both encryption and decryption oracles" — not a
+closing check on a key already found.
 
 ## What Can Go Wrong
 

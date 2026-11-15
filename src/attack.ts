@@ -250,9 +250,13 @@ export async function runModelBreachAttack(
 
   if (!decOracle) {
     // No oracle exists in this deployment, so the forgery is built and then has
-    // nowhere to go. The attacker is left holding a candidate key with no way
-    // to learn whether it is the right one — which is the standard model, and
-    // the reason the paper's result is stated in the extended one.
+    // nowhere to go. The attacker still holds the key phase 2's keystream
+    // equation singled out — that test needed only an encryption query — but
+    // nothing judges the forgery. This is the standard model, and it is why the
+    // paper's result is stated in the extended one: in ePrint 2025/1203 the
+    // forged-tag decryption queries are how the state is recovered at all
+    // ("leveraging both encryption and decryption oracles"), not a closing
+    // check on an already-found key.
     onProgress({
       phase: 'forge', step: 'no-oracle', pct: 92, candidateCount: 1,
       complexityNote: 'No decryption oracle in this deployment',
@@ -260,7 +264,8 @@ export async function runModelBreachAttack(
     steps.push({
       phase: 'forge',
       description: 'Forgery built with the recovered key, but this deployment exposes no decryption ' +
-        'oracle, so there is nothing to submit it to and nothing confirms the candidate.',
+        'oracle, so there is nothing to submit it to: the seed the keystream equation singled out stands, ' +
+        'and the forgery goes unjudged.',
       candidatesBefore: 1, candidatesAfter: 1,
       toyComplexity: 'Toy: 0 decryption queries available',
       fullComplexity: 'Full: standard model — no oracle',
@@ -268,7 +273,7 @@ export async function runModelBreachAttack(
     });
     onProgress({
       phase: 'done', step: 'unconfirmed', pct: 100, candidateCount: 1,
-      complexityNote: 'Recovered but unconfirmable',
+      complexityNote: 'Key recovered; forgery unjudged',
     });
     return {
       recoveredKey, recoveredSeed, steps,

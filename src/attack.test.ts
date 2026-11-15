@@ -144,19 +144,22 @@ describe('The disclosed keyspace and the oracle contract are real parameters', (
     expect(out.seedSpace).toBe(TOY_SEED_SPACE);
   }, 20000);
 
-  it('recovers but cannot confirm when the deployment exposes no decryption oracle', async () => {
+  it('recovers the key but gets no forgery verdict with no decryption oracle', async () => {
     const { key, enc } = blackBoxOracles(7);
     const out = await runModelBreachAttack(enc, null, () => {}, { ...ctx, seedSpace: 256 });
 
     // The key still falls out of the keystream leak — that is an encryption
     // oracle property and does not depend on the threat model.
     expect(eq(out.recoveredKey, key)).toBe(true);
-    // But nothing confirmed it, and the result says so rather than claiming a
-    // forgery that was never submitted anywhere.
+    // The forgery, on the other hand, was never submitted anywhere, and the
+    // result says that rather than claiming an accept that never happened — or
+    // calling the key itself unconfirmable, which the keystream equation above
+    // has already settled.
     expect(out.oracleAvailable).toBe(false);
     expect(out.forgeConfirmed).toBe(false);
     const forge = out.steps.find((s) => s.phase === 'forge');
     expect(forge?.description).toMatch(/no decryption oracle/);
+    expect(forge?.description).toMatch(/the forgery goes unjudged/);
     expect(out.steps.some((s) => /ACCEPTED/.test(s.description))).toBe(false);
   }, 20000);
 

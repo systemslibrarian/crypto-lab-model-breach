@@ -119,14 +119,23 @@ test('a deployment with no decryption oracle blocks the forge phase and says so'
   await runAttack(page);
 
   // The key is still recovered — the keystream leak is an encryption-oracle
-  // property — but nothing confirms it, and the page says which of those two
-  // things happened rather than printing "forgery ACCEPTED" under a tab that
-  // says no forgery can be submitted.
+  // property, and its equation is what singles the seed out — while the forgery
+  // gets no verdict at all here. The page must say which of those two things
+  // happened rather than printing "forgery ACCEPTED" under a tab that says no
+  // forgery can be submitted.
   const log = page.locator('#attack-log');
   await expect(log).toContainText('Candidates tested: 4 of 256');
   await expect(log).toContainText('BLOCKED');
   await expect(log).toContainText('no decryption oracle');
-  await expect(log).toContainText('recovered and unconfirmable');
+  // The keystream equation already singled the seed out; what is missing here
+  // is the forgery verdict, and the log must say that rather than calling the
+  // key unconfirmable.
+  await expect(log).toContainText('the captured keystream block');
+  await expect(log).toContainText('the forgery built with that key is never judged');
+  await expect(log).not.toContainText('unconfirmable');
+  // ...and no run without an oracle may claim an oracle accepted anything:
+  // phase 3 is reached in this deployment, it just has nothing to submit.
+  await expect(log).not.toContainText('ACCEPTED');
   await expect(page.locator('#forge-result')).toBeHidden();
   await expect(page.locator('#run-table-body tr').first()).toContainText('no oracle to ask');
 
@@ -227,4 +236,22 @@ test('no element carrying the hidden attribute is actually rendered', async ({ p
   await page.locator('#run-diffstep').click();
   await expect(page.locator('#diffstep-out')).toBeVisible();
   expect(await leaks()).toEqual([]);
+});
+
+/**
+ * Panel A's grid is the FULL 16-block cipher, so the blocks it marks in red must
+ * be the ones full HiAE's keystream comes from: ci = AESL(S0 ⊕ S1) ⊕ mi ⊕ S9
+ * (draft-pham-cfrg-hiae-07 §3.4.2.2). The toy's own S0/S2 rule belongs to the
+ * 4-block grid below it, which is asserted here too so the two cannot merge.
+ */
+test('the state grids mark each cipher\'s own keystream blocks', async ({ page }) => {
+  await openLab(page);
+
+  const fullMarked = await page.locator('#full-state .state-cell.key-carry').allInnerTexts();
+  expect(fullMarked).toEqual(['S0', 'S1', 'S9']);
+  await expect(page.locator('#full-state .state-cell')).toHaveCount(16);
+
+  const toyMarked = await page.locator('.toy-grid .key-carry').allInnerTexts();
+  expect(toyMarked).toEqual(['S0', 'S2']);
+  await expect(page.locator('.toy-grid span')).toHaveCount(4);
 });

@@ -107,6 +107,9 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
            aria-label="Full HiAE 16-block state diagram"></div>
       <p class="state-note" id="state-note">Each cell is one 128-bit <strong>state block</strong> \u2014 internal secret memory,
         not the message. Update path: S<sub>15</sub> \u2190 A(S<sub>0</sub> \u2295 S<sub>1</sub>) \u2295 A(S<sub>13</sub>) \u2295 X.
+        Full HiAE outputs <span class="mono">c = A(S0 \u2295 S1) \u2295 m \u2295 S9</span>
+        (<a href="https://datatracker.ietf.org/doc/draft-pham-cfrg-hiae/07/">draft-07 \u00a73.4.2.2</a>), so the red cells
+        here are S<sub>0</sub>, S<sub>1</sub> and S<sub>9</sub>; the 4-block toy below runs its own rule.
         <span class="state-note-live">On <strong>Run Attack</strong>, the cells feeding S<sub>15</sub>
         (S<sub>0</sub>, S<sub>1</sub>, S<sub>13</sub>) light up in sequence so you can watch the state actually mutate.</span></p>
       <p class="state-caption" id="state-caption" role="status" aria-live="polite">Idle \u2014 the cells narrate themselves once the attack runs.</p>
@@ -208,15 +211,21 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
     <!-- ============ BRIDGE: WHY THE ORACLE HELPS ============ -->
     <section class="panel" id="panel-oracle">
       <h2 class="panel-title">WHY THE ORACLE CHANGES EVERYTHING</h2>
-      <p class="bridge-lede">A candidate key is only useful if you can <em>test</em> it. The one capability the
-        extended model adds \u2014 a decryption oracle that answers <strong>valid / invalid</strong> \u2014 is precisely
-        what turns "I have a guess" into "I can check my guess." These bars describe Hu’s selected attack, not a generic extended-model security bound. See the separate Bille–Tischhauser comparison below.</p>
+      <p class="bridge-lede">A candidate key is only useful if you can <em>test</em> it \u2014 and which test you have depends on
+        what the model hands you. The attack in Panel C tests its candidates against the keystream block an
+        <strong>encryption</strong> query leaked, which is why its phase 2 ends on one surviving seed: the standard model
+        allows those queries, and that leak is already a predicate. A decryption oracle answering
+        <strong>valid / invalid</strong> is a different capability \u2014 in Hu’s attack, forged-tag decryption queries are
+        how the state is recovered in the first place, and here they are what gets a forgery <em>accepted</em>. The two
+        columns below hold the oracle question and take the leak away. These bars describe Hu’s selected attack, not a generic extended-model security bound. See the separate Bille–Tischhauser comparison below.</p>
 
       <div class="oracle-compare">
         <div class="oc-side oc-standard">
-          <h3 class="oc-h">Standard model \u2014 ciphertext only</h3>
-          <p class="tiny">The attacker sees ciphertext but has no way to ask "is this key right?"
-            Each guess is a shot in the dark that can never be confirmed.</p>
+          <h3 class="oc-h">Standard model \u2014 no decryption oracle</h3>
+          <p class="tiny">The standard model still lets the attacker encrypt chosen plaintexts; what it withholds is a
+            decryption oracle. This column takes the thinner case \u2014 one intercepted ciphertext of a plaintext the
+            attacker never saw \u2014 where every candidate implies <em>some</em> plaintext and so nothing is excluded.
+            Give the same attacker the keystream leak from Panel C and the equation there does the excluding.</p>
           <div class="oc-demo">
             <div class="oc-guess" id="oc-std-guess">candidate keys: none drawn yet</div>
             <div class="oc-verdict oc-unknown" id="oc-std-verdict" role="status" aria-live="polite">— idle</div>
@@ -703,8 +712,8 @@ const scenarios: Record<ScenarioId, { text: string; cls: string; decryptionOracl
 /**
  * The selected scenario is now a contract the simulation below obeys, not a
  * caption beside it. Under A and C the attack is handed no decryption oracle at
- * all, so its forge phase has nothing to submit to and the run ends with an
- * unconfirmed candidate. Previously all three tabs ran the identical attack to
+ * all, so its forge phase has nothing to submit to and the run ends with the
+ * key its keystream equation singled out and a forgery nothing judges. Previously all three tabs ran the identical attack to
  * the identical "forgery ACCEPTED", which quietly contradicted the two tabs
  * that said no such pipeline is exposed.
  */
@@ -762,9 +771,11 @@ const fullState = $('full-state');
 for (let i = 0; i < 16; i++) {
   const cell = document.createElement('div');
   cell.className = 'state-cell';
-  // The keystream the attack captures is A(S0 ⊕ S2); mark those as the words the
-  // observed leak constrains, matching the toy grid's red cells.
-  if (i === 0 || i === 2) cell.classList.add('key-carry');
+  // This is the FULL cipher's grid, so its keystream rule is the full cipher's:
+  // ci = AESL(S0 ⊕ S1) ⊕ mi ⊕ S9 (draft-pham-cfrg-hiae-07 §3.4.2.2). The blocks
+  // that build it are S0, S1 and S9 — not the toy's S0/S2, which is marked on the
+  // 4-block toy grid instead.
+  if (i === 0 || i === 1 || i === 9) cell.classList.add('key-carry');
   cell.textContent = 'S' + i;
   fullState.appendChild(cell);
 }
@@ -782,8 +793,8 @@ const stateCaptionEl = $('state-caption');
 // Per-cell gloss tying each highlighted block back to the leak the attack reads,
 // so the moving cells carry meaning instead of reading as decoration.
 const CELL_CAPTIONS: Record<number, string> = {
-  0: 'S0 — one of the two blocks that build the keystream A(S0 ⊕ S2) the attack observes.',
-  1: 'S1 — mixes with S0 through the AES round A() to feed the new block.',
+  0: 'S0 — with S1 it goes through the AES round A() to build full HiAE\'s keystream, which is then XORed with S9.',
+  1: 'S1 — mixes with S0 through the AES round A(): that output feeds both the keystream and the new block.',
   13: 'S13 — the second source run through A() before it lands in S15.',
   15: 'S15 — where the freshly mixed value lands. This is the state actually mutating each step.',
 };
@@ -797,7 +808,7 @@ function animateUpdatePath(): void {
     src.forEach(i => cells[i]?.classList.add('update-src'));
     cells[15]?.classList.add('update-dst');
     stateCaptionEl.textContent =
-      'S0, S2 feed the keystream A(S0 ⊕ S2) the attack reads; S0/S1/S13 feed the update, and S15 is where the new mixing lands.';
+      'S0, S1 and S9 build full HiAE\'s keystream c = A(S0 ⊕ S1) ⊕ m ⊕ S9; S0/S1/S13 feed the update, and S15 is where the new mixing lands.';
     return;
   }
 
@@ -821,7 +832,7 @@ function animateUpdatePath(): void {
       window.setTimeout(() => {
         cells.forEach(c => c.classList.remove('pulse', 'update-src', 'update-dst'));
         stateCaptionEl.textContent =
-          'S0, S2 feed the keystream you observe; S15 is where the new mixing lands each step.';
+          'S0, S1 and S9 build the keystream in full HiAE; S15 is where the new mixing lands each step.';
       }, 1600);
     }
   }, 550);
@@ -842,8 +853,8 @@ function paintOracleState(): void {
     ? 'Scenario ' + activeScenario.toUpperCase() + ' exposes a decryption oracle, so a recovered key can be ' +
       'confirmed by forging against it. The extended model applies.'
     : 'Scenario ' + activeScenario.toUpperCase() + ' exposes no decryption oracle. The attack below is handed ' +
-      'none, so its forge phase will have nothing to submit to and the recovered candidate stays unconfirmed. ' +
-      'Switch to Scenario B to give the attacker one.';
+      'none: its keystream equation still singles out the key, but the forge phase has nothing to submit to, ' +
+      'so no forgery is ever judged. Switch to Scenario B to give the attacker one.';
   oracleStateEl.className = 'tiny oracle-state ' + (exposed ? 'oracle-open' : 'oracle-shut');
 }
 
@@ -1025,8 +1036,12 @@ function renderProgress(prog: AttackProgress): void {
       break;
 
     case 'forge':
-      appendLog('  Decryption oracle ACCEPTED a forgery signed with the recovered key ' +
-                '(and rejected a random-tag forgery). \u2713', 'ok-text');
+      // Only a real accept earns this line. A deployment with no decryption
+      // oracle reaches this phase too (step 'no-oracle') having submitted
+      // nothing, and the header above it already says BLOCKED.
+      if (prog.step !== 'no-oracle')
+        appendLog('  Decryption oracle ACCEPTED a forgery signed with the recovered key ' +
+                  '(and rejected a random-tag forgery). \u2713', 'ok-text');
       break;
 
     case 'done':
@@ -1036,9 +1051,11 @@ function renderProgress(prog: AttackProgress): void {
 
 /* ------------------------------------------------------------------ */
 /* Bridge demo — "Ask the oracle"                                      */
-/* Makes the causal step tangible: in the ciphertext-only world a       */
-/* candidate stays unconfirmable; with a decryption oracle the SAME     */
-/* candidate is confirmed by a real accept. Uses the real toy crypto.   */
+/* Makes the causal step tangible: with nothing but an intercepted      */
+/* ciphertext no candidate can be excluded; with a decryption oracle    */
+/* the SAME candidate is confirmed by a real accept. Uses the real toy  */
+/* crypto. (The keystream leak phase 2 uses is the other test, and it   */
+/* does the excluding — this panel deliberately withholds it.)          */
 /* ------------------------------------------------------------------ */
 const ocStdGuessEl   = $('oc-std-guess');
 const ocStdVerdictEl = $('oc-std-verdict');
@@ -1344,11 +1361,16 @@ runBtnEl.addEventListener('click', async () => {
               match ? 'ok-text' : 'danger-text');
     if (!result.oracleAvailable) {
       // Be explicit about who knows what. The line above is this page checking
-      // its own answer; the attacker in this deployment cannot run that check.
+      // its own answer against ground truth; the attacker cannot run THAT check.
+      // It does have a predicate of its own, though — the captured keystream
+      // block phase 2 matched — so what this deployment withholds is the forgery
+      // verdict, not the ability to test a candidate.
       appendLog(
         '  \u26A0 That match is checked by this page, which knows the seed. The attacker in Scenario ' +
-        activeScenario.toUpperCase() + ' cannot run it: with no decryption oracle there is no predicate ' +
-        'to evaluate a candidate against, so the key is recovered and unconfirmable at the same time.',
+        activeScenario.toUpperCase() + ' cannot run that check, but it does not need it: phase 2\u2019s ' +
+        'predicate is the captured keystream block, and exactly one seed in the disclosed keyspace ' +
+        'reproduces it. What this deployment withholds is the decryption oracle, so the forgery built ' +
+        'with that key is never judged.',
         'log-note',
       );
     }
