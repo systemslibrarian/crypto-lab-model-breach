@@ -186,7 +186,7 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
 
       <div class="table-wrap" tabindex="0" role="region" aria-label="Versioned HiAE cryptanalysis comparison">
         <table class="model-table">
-          <caption>Separate results and oracle assumptions — checked 12 October 2026</caption>
+          <caption>Separate results and oracle assumptions — Hu row checked 12 October 2026, Bille–Tischhauser row re-checked 15 November 2026</caption>
           <thead><tr><th scope="col">Source / version</th><th scope="col">Time / data / success</th><th scope="col">Attack model</th></tr></thead>
           <tbody>
             <tr><td><a href="https://eprint.iacr.org/2025/1203">Hu, 2025/1203</a> — preprint, revised 16 April 2026</td><td>Approximately 2<sup>209</sup> time; 2<sup>130</sup> data; success probability 1</td><td>Encryption and decryption oracles with repeated forged-tag queries; stronger than the original claim. This is the selected full-size analysis annotated by the toy exhibit.</td></tr>
@@ -467,9 +467,9 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
         </div>
         <div class="tl-entry">
           <b>Jun 2025</b>
-          <span>ePrint 2025/1180 \u2014 Bille &amp; Tischhauser (concurrent, independent)<br>
-          \u201CCryptanalysis of HiAE\u201D \u2014 independent confirmation of the
-          extended-model vulnerability. The revised 16 June 2026 ToSC paper reports 2<sup>128</sup> data and at most 2<sup>129</sup> time under a nonce-respecting decryption-query model, plus a query/success trade-off. This is a distinct result, not Hu’s 2<sup>209</sup> bound.</span>
+          <span>ePrint 2025/1180 \u2014 Alexander Bille &amp; Elmar Tischhauser (concurrent, independent)<br>
+          \u201CCryptanalysis of the Authenticated Stream Cipher HiAE\u201D \u2014 a separate
+          key-recovery analysis, not a confirmation of Hu’s. The 16 June 2026 revision \u2014 a minor revision of an IACR publication in ToSC 2026 \u2014 reports \u201Ca complexity of 2<sup>128</sup> data and at most 2<sup>129</sup> time\u201D for complete recovery of the 256-bit key, and its abstract states the model: \u201COur attack model is nonce-respecting and uses decryption queries\u201D. It also allows a trade-off in the number of queries, the ratio of total cost to success probability staying at most 2<sup>129</sup>. This is a distinct result, not Hu’s 2<sup>209</sup> bound.</span>
         </div>
         <div class="tl-entry">
           <b>Jul 2025</b>
@@ -713,7 +713,7 @@ const scenarios: Record<ScenarioId, { text: string; cls: string; decryptionOracl
     decryptionOracle: false,
   },
   b: {
-    text: 'Scenario B: Shared API endpoint \u2014 Decryption is exposed as a service. Attacker can submit forged ciphertexts. Extended model applies. Hu’s selected attack has 2^209 time / 2^130 data; Bille–Tischhauser report a different 2^129 time / 2^128 data result under their oracle model. Neither is a practical attack. \u26A0',
+    text: 'Scenario B: Shared API endpoint \u2014 Decryption is exposed as a service. Attacker can submit forged ciphertexts. Extended model applies. Hu’s selected attack has 2^209 time / 2^130 data; Bille–Tischhauser report a different 2^129 time / 2^128 data result in a nonce-respecting model that uses decryption queries. Neither is a practical attack. \u26A0',
     cls: 'warn',
     decryptionOracle: true,
   },

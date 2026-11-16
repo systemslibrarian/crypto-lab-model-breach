@@ -145,7 +145,7 @@ abstract of [ePrint 2025/1203](https://eprint.iacr.org/2025/1203): the keystream
 block an encryption-oracle query leaks is already a predicate a candidate key
 must satisfy, and the paper's decryption-oracle queries are how the state is
 recovered at all — "leveraging both encryption and decryption oracles" — not a
-closing check on a key already found.
+closing check on a key already found. ePrint 2025/1180 was re-read the same day from the local IACR OAI-PMH harvest of 14 November 2026 (record `oai:eprint.iacr.org:2025/1180`, datestamp 2026-06-16) and from the paper page itself: the title is *Cryptanalysis of the Authenticated Stream Cipher HiAE*, the authors are Alexander Bille and Elmar Tischhauser, and the publication info reads "A minor revision of an IACR publication in TOSC 2026" (DOI 10.46586/tosc.ak5womx4wo3r). The page had the short title "Cryptanalysis of HiAE" and called the paper an independent confirmation of the extended-oracle result; the abstract claims neither, so the title is now the full one and the entry says what the abstract says — 2^128 data, at most 2^129 time, nonce-respecting, using decryption queries. The eprint.iacr.asia mirror still shows this record as "Preprint." with no DOI and is stale on that field.
 
 ## What Can Go Wrong
 
@@ -163,7 +163,7 @@ closing check on a key already found.
   is implemented, unit-tested, and now runnable in-browser one step at a time —
   but the reduced keyspace, not that machinery, is what the end-to-end key
   recovery drives.
-- **The distinct, stronger result:** [Bille & Tischhauser, ePrint 2025/1180](https://eprint.iacr.org/2025/1180), ToSC 2026, revised 16 June 2026, report full key recovery with 2^128 data and at most 2^129 time in a nonce-respecting setting with decryption queries. They also give a query/success trade-off with total cost divided by success probability at most 2^129. This is not Hu’s 2^209-time / 2^130-data result. Both full-size costs remain infeasible; the reduced-seed browser search reproduces neither. The visible comparison keeps source version, success and oracle access separate.
+- **The distinct, stronger result:** Alexander Bille & Elmar Tischhauser, [*Cryptanalysis of the Authenticated Stream Cipher HiAE*, ePrint 2025/1180](https://eprint.iacr.org/2025/1180) — a minor revision of an IACR publication in ToSC 2026, revised 16 June 2026. Its abstract reports complete recovery of the 256-bit key "with a complexity of 2^128 data and at most 2^129 time", and states the model: "Our attack model is nonce-respecting and uses decryption queries." It also allows a trade-off in the number of queries, 1 ≤ q ≤ 2^128, with the ratio of total cost to success probability always at most 2^129. This is not Hu’s 2^209-time / 2^130-data result. Both full-size costs remain infeasible; the reduced-seed browser search reproduces neither. The visible comparison keeps source version, success and oracle access separate.
 
 ## Real-World Usage
 

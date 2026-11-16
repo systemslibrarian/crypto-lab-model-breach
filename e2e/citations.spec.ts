@@ -36,6 +36,25 @@ test('nothing on the page is sourced to a section no abstract names', async ({ p
   await expect(page.locator('body')).not.toContainText('Section 4.5');
 });
 
+test('2025/1180 reaches the DOM with its own title, authors and abstract figures', async ({
+  page,
+}) => {
+  await openLab(page);
+  const record = page.locator('#panel-d');
+
+  await expect(record).toContainText('Cryptanalysis of the Authenticated Stream Cipher HiAE');
+  await expect(record).toContainText('Alexander Bille & Elmar Tischhauser');
+  // Rendered superscripts carry no separator, unlike the stripped source text.
+  await expect(record).toContainText('a complexity of 2128 data and at most 2129 time');
+  await expect(record).toContainText(
+    'Our attack model is nonce-respecting and uses decryption queries',
+  );
+  await expect(record).toContainText('a minor revision of an IACR publication in ToSC 2026');
+  // Neither the short title nor the confirmation framing may come back.
+  await expect(page.locator('body')).not.toContainText('Cryptanalysis of HiAE');
+  await expect(page.locator('body')).not.toContainText('independent confirmation');
+});
+
 test('2025/1203 is cited by version, and the revision is named with its date', async ({ page }) => {
   await openLab(page);
   const record = page.locator('#panel-d');

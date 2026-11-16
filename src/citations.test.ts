@@ -12,10 +12,21 @@ import readmeSource from '../README.md?raw';
  * neither can return unnoticed.
  *
  * Sources, re-read before each string below was inserted:
- *  - local OAI harvest of 14 November 2026 — 2025/1235 (datestamp 2025-07-09)
- *    and 2025/1203 (datestamp 2026-04-16, the current sole-author revision),
+ *  - local OAI harvest of 14 November 2026 — 2025/1235 (datestamp 2025-07-09),
+ *    2025/1203 (datestamp 2026-04-16, the current sole-author revision) and
+ *    2025/1180 (datestamp 2026-06-16),
  *  - IACR News item 26111, 30 June 2025 — the first, seven-author version of
- *    2025/1203, which the OAI record no longer exposes.
+ *    2025/1203, which the OAI record no longer exposes,
+ *  - the 2025/1180 paper page itself, for the metadata the OAI record does not
+ *    carry: "A minor revision of an IACR publication in TOSC 2026", DOI
+ *    10.46586/tosc.ak5womx4wo3r. (The eprint.iacr.asia mirror still shows that
+ *    record as "Preprint." with no DOI; it is stale on that field.)
+ *
+ * 2025/1180 was cited by a short title it does not have, "Cryptanalysis of
+ * HiAE", and described as independent confirmation of the extended-oracle
+ * result. Its abstract claims neither: it reports its own key recovery, and its
+ * model is nonce-respecting and uses decryption queries. Both the title and the
+ * two load-bearing model words are gated below.
  */
 
 /** Panel text as it ships: the page is a template literal, so \uXXXX is the source form. */
@@ -73,6 +84,27 @@ describe('Quoted text belongs to the record it is attributed to', () => {
     );
   });
 
+  it('gives 2025/1180 its full title, both authors, and its abstract on data and time', () => {
+    expect(pageText).toContain('Cryptanalysis of the Authenticated Stream Cipher HiAE');
+    expect(pageText).toContain('Alexander Bille');
+    expect(pageText).toContain('Elmar Tischhauser');
+    // Tags collapse to spaces here, so the superscripts read "2 128" / "2 129".
+    expect(pageText).toContain('a complexity of 2 128 data and at most 2 129 time');
+    expect(pageText).toContain('a minor revision of an IACR publication in ToSC 2026');
+  });
+
+  it('keeps 2025/1180 in the model its abstract states, and claims no more for it', () => {
+    expect(pageText).toContain(
+      'Our attack model is nonce-respecting and uses decryption queries',
+    );
+    // The short title is not this paper's title.
+    expect(pageText).not.toContain('Cryptanalysis of HiAE');
+    // The abstract does not present the work as confirming Hu's result, and its
+    // own model is nonce-respecting — not Hu's extended forged-tag oracle model.
+    expect(pageText).not.toContain('independent confirmation');
+    expect(pageText).not.toContain('under their oracle model');
+  });
+
   it('README cites the same versions, authors and dates as the page', () => {
     expect(readme).toContain('ePrint 2025/1203 (Xichao Hu, revised 16 April 2026');
     expect(readme).toContain(
@@ -83,5 +115,18 @@ describe('Quoted text belongs to the record it is attributed to', () => {
     expect(readme).not.toMatch(/Hu et al/);
     // The sole-author list belongs to the revision, not to the June 2025 posting.
     expect(readme).not.toMatch(/2025\/1203 \(Xichao Hu, June 2025/);
+
+    // 2025/1180 by its own title, both authors, and the two abstract spans.
+    expect(readme).toContain('Alexander Bille & Elmar Tischhauser');
+    expect(readme).toContain(
+      '*Cryptanalysis of the Authenticated Stream Cipher HiAE*, ePrint 2025/1180',
+    );
+    expect(readme).toContain(
+      '"with a complexity of 2^128 data and at most 2^129 time"',
+    );
+    expect(readme).toContain(
+      '"Our attack model is nonce-respecting and uses decryption queries."',
+    );
+    expect(readme).not.toMatch(/Bille & Tischhauser, ePrint 2025\/1180/);
   });
 });
