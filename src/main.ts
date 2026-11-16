@@ -195,6 +195,16 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
         </table>
       </div>
       <p class="tiny">Both full-size results remain computationally infeasible. The browser’s reduced-seed exhaustive search implements neither full-size attack. <a href="https://eprint.iacr.org/2025/1235">The designers’ clarification (revised 9 July 2025, preprint)</a> excludes forged-tag decryption queries from its original key-recovery claim; attribution of different models is not a proof of deployment safety.</p>
+      <p class="tiny">The attack paper\u2019s own framing moved while its arithmetic did not:
+        its first version (<a href="https://iacr.org/news/item/26111">IACR News item 26111,
+        30 June 2025</a>, seven authors) reported the same 2<sup>209</sup> / 2<sup>130</sup>
+        figures as \u201Cthe first full key-recovery attack on HiAE\u201D, \u201Cbreaking the
+        claimed 256-bit security against key-recovery attacks\u201D in a single-key and
+        nonce-respecting scenario, and the 16 April 2026 revision above withdraws that framing
+        \u2014 stating instead that the attack \u201Cconsiders a stronger scenario than HiAE's
+        original security model, and thus does not invalidate its original security claims.\u201D
+        The designers\u2019 clarification answers that first version \u2014 it predates the
+        revision by nine months.</p>
 
       <div class="scenario-tabs" role="tablist"
            aria-label="Real-world deployment scenarios">
@@ -445,9 +455,12 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
       <div class="timeline">
         <div class="tl-entry">
           <b>Jun 2025</b>
-          <span>ePrint 2025/1203 \u2014 Xichao Hu<br>
-          \u201CAnalyze the Security of the AEAD Scheme HiAE by Algebraic Techniques\u201D<br>
-          Attack: 2<sup>209</sup> time, 2<sup>130</sup> data.
+          <span>ePrint 2025/1203, first version \u2014 Xichao Hu, Lin Jiao, Dengguo Feng,
+          Yonglin Hao, Senpeng Wang, Yongqiang Li, Xinxin Gong<br>
+          \u201CBreaking The Authenticated Encryption scheme HiAE\u201D \u2014 retitled
+          \u201CAnalyze the Security of the AEAD Scheme HiAE by Algebraic Techniques\u201D in the
+          16 April 2026 revision, which lists Xichao Hu alone<br>
+          Attack: 2<sup>209</sup> time, 2<sup>130</sup> data \u2014 identical in both versions.
           Extended decryption oracle model.</span>
           <a href="https://eprint.iacr.org/2025/1203.pdf"
              target="_blank" rel="noreferrer">View Paper \u2197<span class="sr-only"> (opens in new tab)</span></a>
@@ -460,9 +473,11 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
         </div>
         <div class="tl-entry">
           <b>Jul 2025</b>
-          <span>ePrint 2025/1235 \u2014 HiAE Designers\u2019 Response<br>
-          \u201CHiAE remains secure in its intended model.\u201D<br>
-          \u201CThe attack operates outside Section 4.5 of our paper.\u201D<br>
+          <span>ePrint 2025/1235 \u2014 Han Chen, Tao Huang, Phuong Pham, Shuang Wu (the HiAE designers)<br>
+          \u201CHiAE Remains Secure in Its Intended Model: A Clarification of Claimed Attacks\u201D<br>
+          From the abstract: \u201CIn this note, we clarify that the claimed attacks rely
+          critically on submitting forged-tag decryption queries \u2014 a type of behavior
+          explicitly excluded by HiAE\u2019s original security model.\u201D<br>
           This is the designers’ response to the oracle-based attack, not a verdict on every security goal. See the newer statistical-attack note below.</span>
           <a href="https://eprint.iacr.org/2025/1235.pdf"
              target="_blank" rel="noreferrer">View Response \u2197<span class="sr-only"> (opens in new tab)</span></a>

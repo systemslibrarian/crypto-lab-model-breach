@@ -13,12 +13,20 @@ and 180 Gbps on ARM — the fastest cross-platform AEAD ever published.
 It claims 256-bit security against key-recovery attacks in the
 nonce-respecting setting. The designers restrict that claim to their stated model.
 
-This demo uses the algebraic attack from ePrint 2025/1203 (Xichao Hu,
-June 2025 — https://eprint.iacr.org/2025/1203.pdf) as a live illustration
+This demo uses the algebraic attack from ePrint 2025/1203 (Xichao Hu, revised
+16 April 2026 — https://eprint.iacr.org/2025/1203.pdf) as a live illustration
 of what happens when an adversary operates outside the assumed boundaries:
 under a stronger model where the attacker can submit unlimited forgeries
-to the decryption oracle, Hu reports about 2^209 time and 2^130 data. The HiAE designers
-responded in ePrint 2025/1235, maintaining their claims are intact under
+to the decryption oracle, Hu reports about 2^209 time and 2^130 data. That paper's
+framing moved while its arithmetic did not: the first version (seven authors —
+Xichao Hu, Lin Jiao, Dengguo Feng, Yonglin Hao, Senpeng Wang, Yongqiang Li,
+Xinxin Gong — titled "Breaking The Authenticated Encryption scheme HiAE",
+[IACR News item 26111](https://iacr.org/news/item/26111), 30 June 2025) reported
+the same 2^209 / 2^130 figures as "breaking the claimed 256-bit security against
+key-recovery attacks", and the 16 April 2026 revision, which lists Xichao Hu
+alone, states instead that the attack "does not invalidate its original security
+claims". The HiAE designers responded in ePrint 2025/1235 (Han Chen, Tao Huang,
+Phuong Pham, Shuang Wu) to that first version, maintaining their claims are intact under
 the original model. These are attributed claims under different models, not an adjudication of deployment safety.
 
 Implements real AESL (one AES round, zero round key, verified against the
