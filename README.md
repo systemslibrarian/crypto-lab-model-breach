@@ -117,7 +117,7 @@ the leak, and the threat-model gap is drawn as **log-scale magnitude bars**
 
 **[systemslibrarian.github.io/crypto-lab-model-breach](https://systemslibrarian.github.io/crypto-lab-model-breach/)**
 
-The demo implements real AESL (one AES round with a zero round key) and a structurally correct toy-scale HiAE, then runs a live attack that actually recovers the key of a toy instance from oracle output — observe the keystream, search the disclosed reduced keyspace for the matching key, and get the decryption oracle to accept a forgery signed with it. The recovered key is verified against the instance. This makes the threat-model point concrete: the forgery step only works because the decryption oracle is exposed, which is outside HiAE's stated model — this does not establish security of the full scheme under its original claim.
+The demo implements real AESL (one AES round with a zero round key) and a structurally correct **four-block** toy HiAE — real HiAE keeps sixteen 128-bit state blocks — then runs a live attack that actually recovers the key of a toy instance from oracle output — observe the keystream, search the disclosed reduced keyspace for the matching key, and get the decryption oracle to accept a forgery signed with it. The recovered key is verified against the instance. This makes the threat-model point concrete: the forgery step only works because the decryption oracle is exposed, which is outside HiAE's stated model — this does not establish security of the full scheme under its original claim.
 
 ## Research update — 1 November 2026
 

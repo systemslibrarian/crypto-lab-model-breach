@@ -130,3 +130,29 @@ describe('Quoted text belongs to the record it is attributed to', () => {
     expect(readme).not.toMatch(/Bille & Tischhauser, ePrint 2025\/1180/);
   });
 });
+
+describe('the toy scale is stated wherever the toy is described', () => {
+  // src/hiae.ts holds exactly four 128-bit blocks; real HiAE keeps sixteen
+  // (a 2048-bit state). The README said "four-block" in its opening summary
+  // and again in the attack section, but the Live Demo paragraph described
+  // "a structurally correct toy-scale HiAE" with no number, which is the one
+  // place a reader skimming for the deployed link would land.
+  it('every README description of the toy HiAE names its block count', () => {
+    // Scoped to the sentences that DESCRIBE the toy — the ones claiming it is
+    // "structurally correct" — rather than every back-reference to it.
+    const descriptions = readmeSource
+      .split('\n')
+      .filter((line) => /structurally correct/i.test(line));
+    expect(descriptions.length).toBeGreaterThan(1);
+    for (const line of descriptions) {
+      expect(line, `"${line.trim().slice(0, 80)}…" must name the block count`).toMatch(
+        /four-block|4-block/,
+      );
+    }
+    expect(readmeSource).not.toContain('a structurally correct toy-scale HiAE,');
+  });
+
+  it('says what real HiAE keeps, next to the toy scale', () => {
+    expect(readmeSource).toContain('sixteen 128-bit state blocks');
+  });
+});
