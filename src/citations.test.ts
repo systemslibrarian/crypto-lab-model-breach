@@ -131,28 +131,24 @@ describe('Quoted text belongs to the record it is attributed to', () => {
   });
 });
 
-describe('the toy scale is stated wherever the toy is described', () => {
+describe('the toy boundary is stated wherever the toy is described', () => {
   // src/hiae.ts holds exactly four 128-bit blocks; real HiAE keeps sixteen
-  // (a 2048-bit state). The README said "four-block" in its opening summary
-  // and again in the attack section, but the Live Demo paragraph described
-  // "a structurally correct toy-scale HiAE" with no number, which is the one
-  // place a reader skimming for the deployed link would land.
-  it('every README description of the toy HiAE names its block count', () => {
-    // Scoped to the sentences that DESCRIBE the toy — the ones claiming it is
-    // "structurally correct" — rather than every back-reference to it.
-    const descriptions = readmeSource
-      .split('\n')
-      .filter((line) => /structurally correct/i.test(line));
-    expect(descriptions.length).toBeGreaterThan(1);
-    for (const line of descriptions) {
-      expect(line, `"${line.trim().slice(0, 80)}…" must name the block count`).toMatch(
-        /four-block|4-block/,
-      );
-    }
-    expect(readmeSource).not.toContain('a structurally correct toy-scale HiAE,');
+  // (a 2048-bit state). Keep the custom teaching construction distinct from
+  // a structural implementation of the full cipher.
+  it('does not call the custom teaching cipher structurally correct HiAE', () => {
+    expect(readmeSource).not.toMatch(/structurally correct/i);
+    expect(readmeSource).toContain('custom AESL-based **four-block** teaching cipher inspired by HiAE');
   });
 
   it('says what real HiAE keeps, next to the toy scale', () => {
     expect(readmeSource).toContain('sixteen 128-bit state blocks');
+  });
+
+  it('keeps the public lesson honest about the browser computation', () => {
+    expect(pageText).toContain('does try every disclosed toy seed');
+    expect(pageText).toContain("does not reproduce the paper's state-recovery attack");
+    expect(pageText).toContain('does not recover an unknown AESL or HiAE state');
+    expect(pageText).not.toMatch(/provably-broken scheme/i);
+    expect(pageText).not.toMatch(/piece of the secret state leaks/i);
   });
 });

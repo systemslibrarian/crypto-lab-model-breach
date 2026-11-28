@@ -13,13 +13,14 @@ describe('AES S-box DDT census (counted, not quoted)', () => {
     expect(census.withZero + census.withTwo + census.withFour).toBe(census.pairs);
   });
 
-  it('the solution total is exactly one per difference pair on average', () => {
+  it('distinguishes the all-cell identity from the observed-differential expectation', () => {
     // 255 input differences x 256 inputs = 65,280 (x, δin) pairs, each landing
     // in exactly one DDT cell. That identity is why guessing δout collapses an
     // active S-box from 256 candidates to ~1 — the panel states this number
     // because it counted it.
     expect(census.totalSolutions).toBe(255 * 256);
     expect(census.meanSolutionsPerPair).toBe(1);
+    expect(census.meanSolutionsObserved).toBe(2.03125);
   });
 
   it('the AES S-box admits at most 4 solutions per differential', () => {
@@ -29,15 +30,13 @@ describe('AES S-box DDT census (counted, not quoted)', () => {
   });
 });
 
-describe('differential step (the paper technique, run for real)', () => {
-  it('recovers the planted state and reproduces the observed beta', () => {
+describe('seeded AESL differential-consistency illustration', () => {
+  it('reports that the planted active bytes satisfy the measured DDT constraints', () => {
     // The enumeration is deterministic given the pair; run several fresh pairs
     // so a flaky differential cannot mask a broken solver.
     for (let i = 0; i < 15; i += 1) {
       const r = runDifferentialStep();
-      expect(r.solved).toBe(true);
-      expect(r.betaReproduced).toBe(true);
-      expect(r.matchesPlanted).toBe(true);
+      expect(r.fixtureConsistent).toBe(true);
     }
   });
 
@@ -53,7 +52,7 @@ describe('differential step (the paper technique, run for real)', () => {
     expect(r.reductionBits).toBe(r.naiveBits - r.survivingBits);
   });
 
-  it('the enumeration actually enumerates — the count is work done, not a constant', () => {
+  it('reports the active-byte combinations admitted by the DDT', () => {
     const r = runDifferentialStep();
     expect(r.candidatesEnumerated).toBeGreaterThan(0);
     // Candidate pairs checked = |candidates for alpha0| x |candidates for alpha1|,

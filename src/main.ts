@@ -56,7 +56,7 @@ app.innerHTML = `
     </div>
     <aside class="cl-hero-why" aria-label="Why it matters">
       <span class="cl-hero-why-label">WHY IT MATTERS</span>
-      <p class="cl-hero-why-text">A security proof is a contract with fine print: "secure" only means secure against the stated adversary. Miss the model boundary and you can deploy a provably-broken scheme while believing the headline bit-count.</p>
+      <p class="cl-hero-why-text">A security claim is a contract with fine print: "secure" only means secure against the stated adversary. Miss the model boundary and you can deploy outside the analyzed claim while believing the headline bit-count.</p>
     </aside>
   </header>
 
@@ -92,7 +92,7 @@ CLAIMED:  256-bit security against key-recovery attacks
 
 CONDITIONS:
   \u2713 Nonce-respecting encryption queries
-  \u2713 Standard AEAD adversary model
+  \u2713 Designers’ stated key-recovery model
   \u2717 Adversary may NOT submit unlimited forgery attempts
      to the decryption oracle
 
@@ -132,11 +132,11 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
       <h2 class="panel-title">THE THREAT MODEL MAP</h2>
 
       <table class="model-table"
-             aria-label="Standard vs extended threat model comparison">
+             aria-label="Designers' stated model and Hu 2025/1203 model comparison">
         <thead>
           <tr>
-            <th scope="col">STANDARD MODEL</th>
-            <th scope="col">EXTENDED MODEL (this attack)</th>
+            <th scope="col">DESIGNERS’ STATED KEY-RECOVERY MODEL</th>
+            <th scope="col">HU 2025/1203 STRONGER-ORACLE MODEL</th>
           </tr>
         </thead>
         <tbody>
@@ -149,12 +149,12 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
             <td>Observe ciphertexts \u2713</td>
           </tr>
           <tr>
-            <td>Try to forge (limited)</td>
-            <td>Submit <strong>UNLIMITED</strong> forgeries to decryption oracle until one tag validates \u2717</td>
+            <td>Excludes repeated forged-tag decryption queries</td>
+            <td>Uses repeated forged-tag decryption queries</td>
           </tr>
           <tr>
-            <td class="ok-text">Designers’ key-recovery claim: 2<sup>256</sup> \u2713</td>
-            <td class="danger-text">Hu attack time: 2<sup>209</sup> \u2717</td>
+            <td>Designers’ scoped key-recovery claim: 2<sup>256</sup></td>
+            <td>Hu reports approximately 2<sup>209</sup> time in the stronger model</td>
           </tr>
         </tbody>
       </table>
@@ -180,8 +180,8 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
           </div>
         </div>
         <p class="tiny gap-quant">The attack does not shave a little off \u2014 it drops the work by
-          <strong>2<sup>47</sup></strong>, roughly <strong>140 trillion\u00d7</strong> easier than the headline
-          claim. On a log scale that is the whole amber shortfall between the two bars above.</p>
+          <strong>2<sup>47</sup></strong>, roughly <strong>140 trillion\u00d7</strong> below the headline work figure.
+          The values come from different attack models; this comparison does not invalidate the designers’ scoped claim.</p>
       </div>
 
       <div class="table-wrap" tabindex="0" role="region" aria-label="Versioned HiAE cryptanalysis comparison">
@@ -223,19 +223,18 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
       <h2 class="panel-title">WHY THE ORACLE CHANGES EVERYTHING</h2>
       <p class="bridge-lede">A candidate key is only useful if you can <em>test</em> it \u2014 and which test you have depends on
         what the model hands you. The attack in Panel C tests its candidates against the keystream block an
-        <strong>encryption</strong> query leaked, which is why its phase 2 ends on one surviving seed: the standard model
-        allows those queries, and that leak is already a predicate. A decryption oracle answering
+        <strong>encryption</strong> query revealed, which is why its phase 2 ends on one surviving seed: the toy scenario
+        allows those queries, and that observation is already a predicate. A decryption oracle answering
         <strong>valid / invalid</strong> is a different capability \u2014 in Hu’s attack, forged-tag decryption queries are
         how the state is recovered in the first place, and here they are what gets a forgery <em>accepted</em>. The two
         columns below hold the oracle question and take the leak away. These bars describe Hu’s selected attack, not a generic extended-model security bound. See the separate Bille–Tischhauser comparison below.</p>
 
       <div class="oracle-compare">
         <div class="oc-side oc-standard">
-          <h3 class="oc-h">Standard model \u2014 no decryption oracle</h3>
-          <p class="tiny">The standard model still lets the attacker encrypt chosen plaintexts; what it withholds is a
-            decryption oracle. This column takes the thinner case \u2014 one intercepted ciphertext of a plaintext the
+          <h3 class="oc-h">Toy scenario \u2014 intercepted ciphertext only</h3>
+          <p class="tiny">This deliberately narrow scenario supplies no encryption or decryption query. It takes one intercepted ciphertext of a plaintext the
             attacker never saw \u2014 where every candidate implies <em>some</em> plaintext and so nothing is excluded.
-            Give the same attacker the keystream leak from Panel C and the equation there does the excluding.</p>
+            Give the same toy attacker the known-plaintext observation from Panel C and the equation there does the excluding. This column is not a definition of the designers’ complete model.</p>
           <div class="oc-demo">
             <div class="oc-guess" id="oc-std-guess">candidate keys: none drawn yet</div>
             <div class="oc-verdict oc-unknown" id="oc-std-verdict" role="status" aria-live="polite">— idle</div>
@@ -244,7 +243,7 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
           <button id="oc-std-run" type="button" class="oc-btn">Try to eliminate the candidates</button>
         </div>
         <div class="oc-side oc-extended">
-          <h3 class="oc-h">Extended model \u2014 decryption oracle</h3>
+          <h3 class="oc-h">Toy scenario \u2014 decryption oracle exposed</h3>
           <p class="tiny">The attacker submits a forgery built from each guess. A <strong>reject</strong> throws
             the candidate out; an <strong>accept</strong> confirms it. Guessing becomes searching.</p>
           <div class="oc-demo">
@@ -272,14 +271,14 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
            so with pt = 0 the ciphertext IS the keystream block A(S0 XOR S2).
            All three rows are computed live from the toy scheme, not faked. -->
       <div class="leak-explainer">
-        <h3 class="leak-h">First, what is a "keystream leak"?</h3>
+        <h3 class="leak-h">First, what is a known-plaintext keystream observation?</h3>
         <p class="tiny leak-source" id="leak-source"></p>
         <p class="leak-lede">A stream cipher hides a message by XOR-ing it with a secret
           <strong>keystream</strong>: <span class="mono">ciphertext = plaintext \u2295 keystream</span>.
           Watch what happens if the attacker asks the encryption oracle to encrypt a block of
           <strong>all zeros</strong>. Because <span class="mono">0 \u2295 keystream = keystream</span>,
           the ciphertext that comes back <em>is</em> the keystream block itself \u2014 which for this 4-block toy HiAE is exactly
-          <span class="mono">A(S0 \u2295 S2)</span>. One query, and a piece of the secret state leaks out in the clear.</p>
+          <span class="mono">A(S0 \u2295 S2)</span>. This exposes a toy keystream output, not the internal state; it becomes a recovery test only because the demo discloses a tiny seed domain.</p>
         <div class="leak-rows">
           <div class="leak-row">
             <span class="leak-label">Plaintext (all zeros)</span>
@@ -299,8 +298,8 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
           block into an <em>equation</em> every candidate key must satisfy.</p>
       </div>
 
-      <p class="mech-lede">The break is <strong>not</strong> "try every number." It is: the observed keystream
-        <span class="mono">A(S0 \u2295 S2)</span> is an <em>equation</em>, and a candidate key is kept only if it
+      <p class="mech-lede">This browser attack <strong>does try every disclosed toy seed</strong>. The observed keystream
+        <span class="mono">A(S0 \u2295 S2)</span> supplies the predicate: a candidate key is kept only if it
         <em>satisfies</em> that equation \u2014 reproduces the observed block byte-for-byte. Below, watch candidates get
         <strong>checked</strong> against the leak, not merely counted.</p>
 
@@ -340,21 +339,20 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
             </ul>
           </div>
         </div>
-        <p class="tiny mc-foot"><strong>These are not the same algorithm.</strong> The toy is a faithful
-          end-to-end <em>stand-in</em> that shows the leak → recover → forge story truthfully; it is not a
-          scaled-down copy of ePrint 2025/1203. Believing the real attack is "just this search, bigger" is the
+        <p class="tiny mc-foot"><strong>These are not the same algorithm.</strong> The toy is a custom AESL-based
+          teaching cipher inspired by HiAE. It shows observation → exhaustive toy-seed search → forge, but is not a
+          structural implementation or scaled-down copy of ePrint 2025/1203. Believing the real attack is "just this search, bigger" is the
           one wrong lesson to take from this page.</p>
       </div>
 
       <!-- ============ THE PAPER'S TECHNIQUE, EXECUTED ============ -->
       <div class="diffstep" id="diffstep">
-        <h3 class="ds-h">Run the paper's technique — the differential step, measured</h3>
-        <p class="ds-lede">The seed search above is the stand-in. <em>This</em> is the paper's actual move, running
-          on real AESL output. Plant a state pair differing by <span class="mono">α</span>, read the output difference
+        <h3 class="ds-h">Run a seeded AESL differential-consistency check</h3>
+        <p class="ds-lede">This panel isolates one DDT calculation used in differential analysis; it does not reproduce the paper's state-recovery attack. It plants an AESL input pair differing by <span class="mono">α</span>, reads the output difference
           <span class="mono">β = AESL(x) ⊕ AESL(x ⊕ α)</span>, and watch what knowing β does to the search space:
           each active S-box stops accepting all 256 inputs and accepts only those satisfying
           <span class="mono">S(x) ⊕ S(x ⊕ δ<sub>in</sub>) = δ<sub>out</sub></span>. Every number below is measured from
-          the run, including the enumeration's own candidate count.</p>
+          the run. The inactive bytes remain supplied by the fixture, so no unknown full state is recovered.</p>
 
         <div class="ds-ddt" id="ds-ddt">
           <h4 class="ds-sub">Why it pays — the AES S-box difference table, counted here on load</h4>
@@ -368,10 +366,9 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
         <p id="ds-meta" class="tiny" role="status" aria-live="polite">Not run yet.</p>
         <div id="diffstep-out" class="ds-out" hidden></div>
 
-        <p class="tiny ds-scale"><strong>Scale, plainly:</strong> this runs the differential step on
-          <em>one</em> AESL call with four active S-boxes — the size a browser can afford. The paper chains the same
-          step across HiAE's 2048-bit state, and that chaining is where 2<sup>209</sup> comes from. The chaining is
-          not executed here and this panel does not claim it: what it claims, and measures, is the per-step collapse.</p>
+        <p class="tiny ds-scale"><strong>Scale, plainly:</strong> this runs a local DDT check on
+          <em>one</em> AESL call with four active S-boxes. The paper's full construction and chaining across HiAE's
+          2048-bit state are not executed here. This panel establishes only the local DDT candidate reduction.</p>
       </div>
 
       <div class="attack-controls">
@@ -409,7 +406,7 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
            aria-label="Attack simulation log — scrollable"></div>
 
       <div id="forge-result" class="forge-result hidden" aria-label="Forgery verification result">
-        <h3 class="fr-h">What "the contract broke" actually means</h3>
+        <h3 class="fr-h">What the toy oracle accepted</h3>
         <div class="fr-cards">
           <div class="fr-card fr-accept" id="fr-accept">
             <span class="fr-badge">✓ ACCEPTED</span>
@@ -424,7 +421,7 @@ STATUS:  Designers’ key-recovery claim under these conditions</pre>
         </div>
         <p class="tiny fr-note">The accept is the felt version of "2<sup>209</sup>": inside the extended model, the
           attacker's forgery goes through. Under HiAE's stated nonce-respecting model, no such oracle exists — and the
-          claim holds.</p>
+          this toy attack does not contradict the designers’ stated key-recovery claim.</p>
       </div>
 
       <aside id="disclaimer" class="disclaimer hidden"
@@ -628,12 +625,12 @@ function statBlock(label: string, value: string, cls = ''): string {
     statBlock('pairs with NO solution', fmtCount(census.withZero)) +
     statBlock('pairs with 2 solutions', fmtCount(census.withTwo)) +
     statBlock('pairs with 4 solutions', fmtCount(census.withFour)) +
-    statBlock('mean solutions per pair', census.meanSolutionsPerPair.toFixed(2), 'ds-stat-key');
+    statBlock('mean candidates for an observed differential', census.meanSolutionsObserved.toFixed(5), 'ds-stat-key');
   $('ds-ddt-note').textContent =
     'Counted by building the table: ' + fmtCount(census.totalSolutions) + ' solutions spread over ' +
-    fmtCount(census.pairs) + ' difference pairs, so an active S-box whose output difference is known keeps ' +
-    census.meanSolutionsPerPair.toFixed(2) + ' input on average instead of 256. ' +
-    'Slightly over half the pairs are impossible outright, which is why a wrong differential dies immediately.';
+    fmtCount(census.pairs) + ' possible cells. The all-cell mean is ' + census.meanSolutionsPerPair.toFixed(2) +
+    ' only because impossible output differences are included. Conditioned on an observed possible differential, ' +
+    'the AES S-box keeps ' + census.meanSolutionsObserved.toFixed(5) + ' candidates on average (always 2 or 4 here).';
 })();
 
 function renderDifferentialRun(r: DifferentialStepResult): string {
@@ -650,7 +647,7 @@ function renderDifferentialRun(r: DifferentialStepResult): string {
     )
     .join('');
 
-  const allOk = r.solved && r.betaReproduced && r.matchesPlanted;
+  const allOk = r.fixtureConsistent;
   const check = (ok: boolean, text: string) =>
     `<p class="ds-check ${ok ? 'ok-text' : 'danger-text'}"><span aria-hidden="true">${ok ? '✓' : '✗'}</span> ${text}</p>`;
 
@@ -668,19 +665,18 @@ function renderDifferentialRun(r: DifferentialStepResult): string {
       ${statBlock('space knowing α only', '2^' + r.naiveBits.toFixed(0))}
       ${statBlock('space knowing α and β', '2^' + r.survivingBits.toFixed(0), 'ds-stat-key')}
       ${statBlock('measured reduction', '2^' + r.reductionBits.toFixed(0), 'ds-stat-key')}
-      ${statBlock('candidate pairs enumerated', fmtCount(r.candidatesEnumerated))}
-      ${statBlock('enumeration time', r.elapsedMs.toFixed(1) + ' ms')}
+      ${statBlock('active-byte combinations', fmtCount(r.candidatesEnumerated))}
+      ${statBlock('consistency-check time', r.elapsedMs.toFixed(1) + ' ms')}
     </div>
     <div class="ds-checks" id="ds-checks">
-      ${check(r.solved, 'The Theorem 1 enumeration returned a single surviving state.')}
-      ${check(r.betaReproduced, 'That state re-derives the observed β under real AESL — the differential is satisfied, not assumed.')}
-      ${check(r.matchesPlanted, 'It equals the state that was planted, which the enumeration was never told.')}
+      ${check(r.fixtureConsistent, 'The known fixture’s four active bytes occur among the DDT candidates.')}
+      <p class="ds-check">This check was given the fixture’s inactive bytes. It does not recover an unknown AESL or HiAE state.</p>
     </div>
     <p class="ds-verdict ${allOk ? 'ok-text' : 'danger-text'}" id="ds-verdict">${
       allOk
         ? 'Knowing β collapsed ' + fmtCount(r.naiveSpace) + ' possibilities to ' + fmtCount(r.survivingSpace) +
           ' — a measured 2^' + r.reductionBits.toFixed(0) + ' cut, from one differential, on one AESL call.'
-        : 'This differential did not pin down a unique state. Run it again — that outcome is reported, not hidden.'
+        : 'The generated fixture failed its own DDT consistency check; no recovery claim is made.'
     }</p>`;
 }
 
@@ -696,7 +692,7 @@ dsRunBtnEl.addEventListener('click', () => {
     dsOutEl.hidden = false;
     dsMetaEl.textContent =
       'Ran on a fresh random pair: ' + result.activeSboxes + ' active S-boxes, ' +
-      fmtCount(result.candidatesEnumerated) + ' candidate pairs enumerated in ' +
+      fmtCount(result.candidatesEnumerated) + ' active-byte combinations admitted in ' +
       result.elapsedMs.toFixed(1) + ' ms. Press again for a different differential.';
   } finally {
     dsRunBtnEl.disabled = false;

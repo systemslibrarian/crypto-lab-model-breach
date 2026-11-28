@@ -30,7 +30,7 @@ Phuong Pham, Shuang Wu) to that first version, maintaining their claims are inta
 the original model. These are attributed claims under different models, not an adjudication of deployment safety.
 
 Implements real AESL (one AES round, zero round key, verified against the
-FIPS-197 round vector), a structurally correct **four-block** toy HiAE (real
+FIPS-197 round vector), a custom AESL-based **four-block** teaching cipher inspired by HiAE (real
 HiAE keeps sixteen 128-bit state blocks), and a live
 key-recovery attack that is **genuinely computed from oracle output**:
 
@@ -49,29 +49,25 @@ key-recovery attack that is **genuinely computed from oracle output**:
    accepts it** (and rejects a random-tag forgery). Under Scenario A or C the
    attack is handed no oracle at all, so this phase is blocked and the run ends
    with the key phase 2's keystream equation already singled out and a forgery
-   nothing will judge — the standard model enforced rather than described.
+   nothing will judge — one no-decryption-query scenario enforced rather than described.
 
-The recovered key is checked byte-for-byte against the instance and is never
+The recovered toy key is checked byte-for-byte against the instance and is never
 read from oracle metadata. **The reduced keyspace is the toy** — recovering a
 full random 256-bit HiAE key is the 2^209-time / 2^130-data result of ePrint
 2025/1203, which is annotated, never executed in-browser. The AESL differential math the paper uses (Theorem 1 candidate enumeration,
 the MITM key equation) is no longer library-only: a **differential-step panel**
-runs it in the browser and *measures* it. Press it and the page plants a state
+runs a local DDT consistency illustration in the browser and *measures* it. Press it and the page plants an AESL input
 pair differing by α, reads the real output difference β = AESL(x) ⊕ AESL(x ⊕ α),
 solves each active S-box from the AES difference distribution table, and reports
 the collapse it produced — 2^32 possibilities over the four active bytes knowing
-α alone, typically 2^4–2^8 knowing β too, a measured ~2^24–2^28 cut — then runs
-the Theorem 1 enumeration, prints how many candidate pairs it actually checked,
-and verifies the state it returns both reproduces β and equals the planted one.
+α alone, typically 2^4–2^8 knowing β too, a measured ~2^24–2^28 cut. It verifies only that the planted fixture's active bytes occur among those candidates; inactive bytes are supplied, so this is not unknown-state recovery.
 The DDT census beside it is counted on load, not quoted: 65,280 solutions over
-65,280 difference pairs, i.e. exactly one surviving input per active S-box on
-average, with just over half the pairs impossible outright. What remains
+65,280 possible cells. The all-cell mean is one only because impossible cells are included; conditioned on an observed possible differential, the AES S-box has 2.03125 candidates on average. What remains
 annotated rather than executed is *chaining* that step across the full 2048-bit
 state, which is where 2^209 comes from — and the panel says so on the page.
 No backends, no mocks, no recordings.
 
-The recovery is shown as what it actually is — an **algebraic equation check**,
-not a brute-force count. The captured toy keystream `A(S0 ⊕ S2)` is treated as a
+The browser recovery is shown as what it actually is — **exhaustive search of a disclosed tiny seed domain** using an algebraic predicate. The captured toy keystream `A(S0 ⊕ S2)` is treated as a
 constraint: candidate keys are re-derived live and lit up **byte-by-byte** where
 they satisfy the equation, so wrong keys visibly fail on mismatched bytes and the
 recovered key satisfies all sixteen. A companion panel isolates *why the oracle
@@ -86,7 +82,7 @@ full-HiAE state grid animates the full cipher's update path
 Attack rather than pulsing on a disconnected timer.
 
 For a newcomer, the mechanism is now made concrete before the argument leans on it.
-An always-visible **"what is a keystream leak?"** micro-explainer encrypts a block
+An always-visible **known-plaintext keystream observation** micro-explainer encrypts a block
 of zeros live and shows three byte rows — zero plaintext, ciphertext, and the
 derived keystream — so the learner *sees* that `ct` of zeros literally **is** the
 toy's keystream block `A(S0 ⊕ S2)`, and why a single query leaks a testable constraint.
@@ -117,7 +113,7 @@ the leak, and the threat-model gap is drawn as **log-scale magnitude bars**
 
 **[systemslibrarian.github.io/crypto-lab-model-breach](https://systemslibrarian.github.io/crypto-lab-model-breach/)**
 
-The demo implements real AESL (one AES round with a zero round key) and a structurally correct **four-block** toy HiAE — real HiAE keeps sixteen 128-bit state blocks — then runs a live attack that actually recovers the key of a toy instance from oracle output — observe the keystream, search the disclosed reduced keyspace for the matching key, and get the decryption oracle to accept a forgery signed with it. The recovered key is verified against the instance. This makes the threat-model point concrete: the forgery step only works because the decryption oracle is exposed, which is outside HiAE's stated model — this does not establish security of the full scheme under its original claim.
+The demo implements real AESL (one AES round with a zero round key) inside a custom AESL-based four-block teaching cipher inspired by HiAE — not a structural implementation of HiAE, which keeps sixteen 128-bit state blocks. It exhaustively searches a disclosed reduced seed domain for the toy key whose keystream matches the known-plaintext observation, then asks a toy decryption oracle to accept a forgery. This does not reproduce the Hu or Bille–Tischhauser attacks and does not adjudicate HiAE's full-scheme claim.
 
 ## Research update — 1 November 2026
 
@@ -154,15 +150,12 @@ closing check on a key already found. ePrint 2025/1180 was re-read the same day 
   cannot expose a decryption oracle to adversaries, that specific attack model
   does not apply; this alone does not prove HiAE’s 256-bit claim or settle other security goals.
 - **Toy scale vs full scale:** The live recovery brute-forces a *disclosed
-  toy keyspace of the learner's chosen width, up to 2^16,* against real oracle output (the differential-step panel is
-  the paper's own technique, but at one-AESL-call scale) — this is what makes an
+  toy keyspace of the learner's chosen width, up to 2^16,* against real oracle output. The separate differential panel is only a seeded AESL DDT-consistency illustration — this is what makes an
   end-to-end, honestly-verified key recovery browser-runnable. It is not the
   full algebraic attack: recovering a full random 256-bit key is 2^130 data /
   2^209 time (ePrint 2025/1203) and is annotated, never executed. The paper's
-  AESL differential machinery (Theorem 1 enumeration, the MITM key equation)
-  is implemented, unit-tested, and now runnable in-browser one step at a time —
-  but the reduced keyspace, not that machinery, is what the end-to-end key
-  recovery drives.
+  AESL differential machinery is not reproduced end to end in the browser;
+  the reduced keyspace is what drives the toy recovery.
 - **The distinct, stronger result:** Alexander Bille & Elmar Tischhauser, [*Cryptanalysis of the Authenticated Stream Cipher HiAE*, ePrint 2025/1180](https://eprint.iacr.org/2025/1180) — a minor revision of an IACR publication in ToSC 2026, revised 16 June 2026. Its abstract reports complete recovery of the 256-bit key "with a complexity of 2^128 data and at most 2^129 time", and states the model: "Our attack model is nonce-respecting and uses decryption queries." It also allows a trade-off in the number of queries, 1 ≤ q ≤ 2^128, with the ratio of total cost to success probability always at most 2^129. This is not Hu’s 2^209-time / 2^130-data result. Both full-size costs remain infeasible; the reduced-seed browser search reproduces neither. The visible comparison keeps source version, success and oracle access separate.
 
 ## Real-World Usage

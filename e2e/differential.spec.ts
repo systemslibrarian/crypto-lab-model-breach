@@ -19,12 +19,12 @@ async function runStep(page: Page): Promise<void> {
   await expect(page.locator('#diffstep-out')).toBeVisible();
 }
 
-test('the DDT census is counted on load and reports one solution per pair', async ({ page }) => {
+test('the DDT census distinguishes all cells from observed differentials', async ({ page }) => {
   await page.goto('.');
   const stats = page.locator('#ds-ddt-stats');
   await expect(stats).toContainText('65,280'); // 255 x 256 difference pairs
-  await expect(stats).toContainText('1.00'); // mean solutions per pair
-  await expect(page.locator('#ds-ddt-note')).toContainText('65,280 solutions spread over 65,280');
+  await expect(stats).toContainText('2.03125');
+  await expect(page.locator('#ds-ddt-note')).toContainText('impossible output differences are included');
 });
 
 test('running the differential step prints this run’s α, β and per-S-box solutions', async ({
@@ -54,7 +54,7 @@ test('running the differential step prints this run’s α, β and per-S-box sol
   }
 });
 
-test('the panel measures the collapse and the enumeration confirms it', async ({ page }) => {
+test('the panel measures the collapse without claiming state recovery', async ({ page }) => {
   await page.goto('.');
   await runStep(page);
 
@@ -63,14 +63,14 @@ test('the panel measures the collapse and the enumeration confirms it', async ({
   await expect(out).toContainText('2^32');
   await expect(out).toContainText('measured reduction');
 
-  // All three checks are computed booleans; a broken solver renders them red.
-  await expect(page.locator('#ds-checks .ok-text')).toHaveCount(3);
+  await expect(page.locator('#ds-checks .ok-text')).toHaveCount(1);
   await expect(page.locator('#ds-checks .danger-text')).toHaveCount(0);
   await expect(page.locator('#ds-verdict')).toContainText('collapsed');
   await expect(page.locator('#ds-verdict')).toHaveClass(/ok-text/);
 
   // The enumeration really ran: it reports work done, not a constant.
-  await expect(page.locator('#ds-meta')).toContainText('candidate pairs enumerated in');
+  await expect(page.locator('#ds-meta')).toContainText('active-byte combinations admitted');
+  await expect(page.locator('#ds-checks')).toContainText('does not recover an unknown');
 });
 
 test('re-running produces a different differential — the numbers come from the run', async ({
